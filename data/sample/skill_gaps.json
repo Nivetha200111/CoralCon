@@ -1,0 +1,14 @@
+[
+  { "skill": "TypeScript",     "times_required": 34, "in_github": false, "in_linkedin": false, "priority": "critical" },
+  { "skill": "React",          "times_required": 38, "in_github": false, "in_linkedin": true,  "priority": "critical" },
+  { "skill": "Docker",         "times_required": 28, "in_github": true,  "in_linkedin": false, "priority": "high" },
+  { "skill": "Kubernetes",     "times_required": 22, "in_github": false, "in_linkedin": false, "priority": "critical" },
+  { "skill": "CI/CD",          "times_required": 19, "in_github": false, "in_linkedin": false, "priority": "high" },
+  { "skill": "System Design",  "times_required": 17, "in_github": false, "in_linkedin": false, "priority": "high" },
+  { "skill": "AWS",            "times_required": 24, "in_github": false, "in_linkedin": true,  "priority": "high" },
+  { "skill": "PostgreSQL",     "times_required": 15, "in_github": true,  "in_linkedin": true,  "priority": "medium" },
+  { "skill": "GraphQL",        "times_required": 11, "in_github": false, "in_linkedin": false, "priority": "medium" },
+  { "skill": "Redis",          "times_required": 9,  "in_github": false, "in_linkedin": false, "priority": "medium" },
+  { "skill": "Terraform",      "times_required": 8,  "in_github": false, "in_linkedin": false, "priority": "medium" },
+  { "skill": "Next.js",        "times_required": 21, "in_github": false, "in_linkedin": false, "priority": "critical" }
+]

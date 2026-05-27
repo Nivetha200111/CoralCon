@@ -1,0 +1,313 @@
+[
+  {
+    "query_id": "q_001",
+    "query_name": "rejection_patterns",
+    "sql": "SELECT n.role_title, COUNT(*) as total, SUM(CASE WHEN n.status = 'rejected' THEN 1 ELSE 0 END) as rejected, SUM(CASE WHEN n.status = 'ghosted' THEN 1 ELSE 0 END) as ghosted, SUM(CASE WHEN n.status = 'interviewing' THEN 1 ELSE 0 END) as interviewed, SUM(CASE WHEN n.status = 'offer' THEN 1 ELSE 0 END) as offers, ROUND( SUM(CASE WHEN n.status = 'rejected' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1 ) as rejection_rate, ROUND( SUM(CASE WHEN n.status = 'ghosted' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1 ) as ghost_rate, ROUND( (SUM(CASE WHEN n.status IN ('interviewing', 'offer') THEN 1 ELSE 0 END)) * 100.0 / COUNT(*), 1 ) as response_rate FROM notion.applications n GROUP BY n.role_title ORDER BY rejection_rate DESC",
+    "sources_used": [
+      "notion.applications"
+    ],
+    "is_cross_source": false,
+    "rows_returned": 6,
+    "execution_ms": 0.64,
+    "used_cache": false,
+    "timestamp": "2026-05-27T16:38:28"
+  },
+  {
+    "query_id": "q_002",
+    "query_name": "rejection_patterns",
+    "sql": "SELECT n.role_title, COUNT(*) as total, SUM(CASE WHEN n.status = 'rejected' THEN 1 ELSE 0 END) as rejected, SUM(CASE WHEN n.status = 'ghosted' THEN 1 ELSE 0 END) as ghosted, SUM(CASE WHEN n.status = 'interviewing' THEN 1 ELSE 0 END) as interviewed, SUM(CASE WHEN n.status = 'offer' THEN 1 ELSE 0 END) as offers, ROUND( SUM(CASE WHEN n.status = 'rejected' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1 ) as rejection_rate, ROUND( SUM(CASE WHEN n.status = 'ghosted' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1 ) as ghost_rate, ROUND( (SUM(CASE WHEN n.status IN ('interviewing', 'offer') THEN 1 ELSE 0 END)) * 100.0 / COUNT(*), 1 ) as response_rate FROM notion.applications n GROUP BY n.role_title ORDER BY rejection_rate DESC",
+    "sources_used": [
+      "notion.applications"
+    ],
+    "is_cross_source": false,
+    "rows_returned": 6,
+    "execution_ms": 0.96,
+    "used_cache": false,
+    "timestamp": "2026-05-27T16:38:56"
+  },
+  {
+    "query_id": "q_003",
+    "query_name": "rejection_patterns",
+    "sql": "SELECT n.role_title, COUNT(*) as total, SUM(CASE WHEN n.status = 'rejected' THEN 1 ELSE 0 END) as rejected, SUM(CASE WHEN n.status = 'ghosted' THEN 1 ELSE 0 END) as ghosted, SUM(CASE WHEN n.status = 'interviewing' THEN 1 ELSE 0 END) as interviewed, SUM(CASE WHEN n.status = 'offer' THEN 1 ELSE 0 END) as offers, ROUND( SUM(CASE WHEN n.status = 'rejected' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1 ) as rejection_rate, ROUND( SUM(CASE WHEN n.status = 'ghosted' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1 ) as ghost_rate, ROUND( (SUM(CASE WHEN n.status IN ('interviewing', 'offer') THEN 1 ELSE 0 END)) * 100.0 / COUNT(*), 1 ) as response_rate FROM notion.applications n GROUP BY n.role_title ORDER BY rejection_rate DESC",
+    "sources_used": [
+      "notion.applications"
+    ],
+    "is_cross_source": false,
+    "rows_returned": 6,
+    "execution_ms": 1.2,
+    "used_cache": false,
+    "timestamp": "2026-05-27T16:38:56"
+  },
+  {
+    "query_id": "q_004",
+    "query_name": "skill_gap_detection",
+    "sql": "SELECT skill, COUNT(*) as times_required, MAX(CASE WHEN in_github = true THEN 1 ELSE 0 END) as in_github, MAX(CASE WHEN in_linkedin = true THEN 1 ELSE 0 END) as in_linkedin FROM ( SELECT skill_name as skill, (g.languages LIKE '%' || skill_name || '%') as in_github, (l.skills LIKE '%' || skill_name || '%') as in_linkedin FROM ( SELECT UNNEST(n.required_skills) as skill_name FROM notion.applications n WHERE n.status = 'rejected' ) skills JOIN github.profile g JOIN linkedin.skills l ) sub GROUP BY skill ORDER BY times_required DESC LIMIT 15",
+    "sources_used": [
+      "github.profile",
+      "linkedin.skills",
+      "notion.applications"
+    ],
+    "is_cross_source": true,
+    "rows_returned": 12,
+    "execution_ms": 1.25,
+    "used_cache": false,
+    "timestamp": "2026-05-27T16:38:56"
+  },
+  {
+    "query_id": "q_005",
+    "query_name": "github_activity_correlation",
+    "sql": "SELECT n.company, n.applied_date, n.status, n.role_title, g.commits_count, g.active_repos, g.languages FROM notion.applications n JOIN github.activity g ON g.week = date_trunc('week', n.applied_date) WHERE n.status IN ('rejected', 'ghosted', 'interviewing', 'offer') ORDER BY n.applied_date DESC",
+    "sources_used": [
+      "github.activity",
+      "notion.applications"
+    ],
+    "is_cross_source": true,
+    "rows_returned": 26,
+    "execution_ms": 0.96,
+    "used_cache": false,
+    "timestamp": "2026-05-27T16:38:56"
+  },
+  {
+    "query_id": "q_006",
+    "query_name": "rejection_patterns",
+    "sql": "SELECT n.role_title, COUNT(*) as total, SUM(CASE WHEN n.status = 'rejected' THEN 1 ELSE 0 END) as rejected, SUM(CASE WHEN n.status = 'ghosted' THEN 1 ELSE 0 END) as ghosted, SUM(CASE WHEN n.status = 'interviewing' THEN 1 ELSE 0 END) as interviewed, SUM(CASE WHEN n.status = 'offer' THEN 1 ELSE 0 END) as offers, ROUND( SUM(CASE WHEN n.status = 'rejected' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1 ) as rejection_rate, ROUND( SUM(CASE WHEN n.status = 'ghosted' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1 ) as ghost_rate, ROUND( (SUM(CASE WHEN n.status IN ('interviewing', 'offer') THEN 1 ELSE 0 END)) * 100.0 / COUNT(*), 1 ) as response_rate FROM notion.applications n GROUP BY n.role_title ORDER BY rejection_rate DESC",
+    "sources_used": [
+      "notion.applications"
+    ],
+    "is_cross_source": false,
+    "rows_returned": 6,
+    "execution_ms": 1.34,
+    "used_cache": false,
+    "timestamp": "2026-05-27T16:38:56"
+  },
+  {
+    "query_id": "q_007",
+    "query_name": "skill_gap_detection",
+    "sql": "SELECT skill, COUNT(*) as times_required, MAX(CASE WHEN in_github = true THEN 1 ELSE 0 END) as in_github, MAX(CASE WHEN in_linkedin = true THEN 1 ELSE 0 END) as in_linkedin FROM ( SELECT skill_name as skill, (g.languages LIKE '%' || skill_name || '%') as in_github, (l.skills LIKE '%' || skill_name || '%') as in_linkedin FROM ( SELECT UNNEST(n.required_skills) as skill_name FROM notion.applications n WHERE n.status = 'rejected' ) skills JOIN github.profile g JOIN linkedin.skills l ) sub GROUP BY skill ORDER BY times_required DESC LIMIT 15",
+    "sources_used": [
+      "github.profile",
+      "linkedin.skills",
+      "notion.applications"
+    ],
+    "is_cross_source": true,
+    "rows_returned": 12,
+    "execution_ms": 0.85,
+    "used_cache": false,
+    "timestamp": "2026-05-27T16:38:56"
+  },
+  {
+    "query_id": "q_008",
+    "query_name": "github_activity_correlation",
+    "sql": "SELECT n.company, n.applied_date, n.status, n.role_title, g.commits_count, g.active_repos, g.languages FROM notion.applications n JOIN github.activity g ON g.week = date_trunc('week', n.applied_date) WHERE n.status IN ('rejected', 'ghosted', 'interviewing', 'offer') ORDER BY n.applied_date DESC",
+    "sources_used": [
+      "github.activity",
+      "notion.applications"
+    ],
+    "is_cross_source": true,
+    "rows_returned": 26,
+    "execution_ms": 0.96,
+    "used_cache": false,
+    "timestamp": "2026-05-27T16:38:56"
+  },
+  {
+    "query_id": "q_009",
+    "query_name": "timing_analysis",
+    "sql": "SELECT CASE WHEN days_to_apply <= 1 THEN 'same_day' WHEN days_to_apply <= 2 THEN '1-2_days' WHEN days_to_apply <= 7 THEN '3-7_days' WHEN days_to_apply <= 14 THEN '1-2_weeks' ELSE '2_weeks_plus' END as timing_bucket, COUNT(*) as total, ROUND( SUM(CASE WHEN status IN ('interviewing', 'offer') THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1 ) as response_rate, ROUND( SUM(CASE WHEN status = 'ghosted' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1 ) as ghost_rate FROM notion.applications GROUP BY timing_bucket ORDER BY CASE timing_bucket WHEN 'same_day' THEN 1 WHEN '1-2_days' THEN 2 WHEN '3-7_days' THEN 3 WHEN '1-2_weeks' THEN 4 ELSE 5 END",
+    "sources_used": [
+      "notion.applications"
+    ],
+    "is_cross_source": false,
+    "rows_returned": 6,
+    "execution_ms": 0.98,
+    "used_cache": false,
+    "timestamp": "2026-05-27T16:38:56"
+  },
+  {
+    "query_id": "q_010",
+    "query_name": "followup_tracker",
+    "sql": "SELECT n.company, n.role_title, n.applied_date, DATEDIFF('day', n.applied_date, CURRENT_DATE) as days_waiting, CASE WHEN DATEDIFF('day', n.applied_date, CURRENT_DATE) BETWEEN 7 AND 14 THEN 'hot' WHEN DATEDIFF('day', n.applied_date, CURRENT_DATE) BETWEEN 15 AND 21 THEN 'warm' ELSE 'cold' END as priority, CASE WHEN DATEDIFF('day', n.applied_date, CURRENT_DATE) BETWEEN 7 AND 14 THEN 'Send follow-up email now (22% success rate at day 10)' WHEN DATEDIFF('day', n.applied_date, CURRENT_DATE) BETWEEN 15 AND 21 THEN 'Last chance follow-up (8% success rate)' ELSE 'Move on \u2014 mark as ghosted' END as recommended_action FROM notion.applications n WHERE n.status = 'applied' AND DATEDIFF('day', n.applied_date, CURRENT_DATE) >= 7 ORDER BY days_waiting ASC",
+    "sources_used": [
+      "notion.applications"
+    ],
+    "is_cross_source": false,
+    "rows_returned": 12,
+    "execution_ms": 0.9,
+    "used_cache": false,
+    "timestamp": "2026-05-27T16:38:56"
+  },
+  {
+    "query_id": "q_011",
+    "query_name": "timing_analysis",
+    "sql": "SELECT CASE WHEN days_to_apply <= 1 THEN 'same_day' WHEN days_to_apply <= 2 THEN '1-2_days' WHEN days_to_apply <= 7 THEN '3-7_days' WHEN days_to_apply <= 14 THEN '1-2_weeks' ELSE '2_weeks_plus' END as timing_bucket, COUNT(*) as total, ROUND( SUM(CASE WHEN status IN ('interviewing', 'offer') THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1 ) as response_rate, ROUND( SUM(CASE WHEN status = 'ghosted' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1 ) as ghost_rate FROM notion.applications GROUP BY timing_bucket ORDER BY CASE timing_bucket WHEN 'same_day' THEN 1 WHEN '1-2_days' THEN 2 WHEN '3-7_days' THEN 3 WHEN '1-2_weeks' THEN 4 ELSE 5 END",
+    "sources_used": [
+      "notion.applications"
+    ],
+    "is_cross_source": false,
+    "rows_returned": 6,
+    "execution_ms": 1.57,
+    "used_cache": false,
+    "timestamp": "2026-05-27T16:38:56"
+  },
+  {
+    "query_id": "q_012",
+    "query_name": "followup_tracker",
+    "sql": "SELECT n.company, n.role_title, n.applied_date, DATEDIFF('day', n.applied_date, CURRENT_DATE) as days_waiting, CASE WHEN DATEDIFF('day', n.applied_date, CURRENT_DATE) BETWEEN 7 AND 14 THEN 'hot' WHEN DATEDIFF('day', n.applied_date, CURRENT_DATE) BETWEEN 15 AND 21 THEN 'warm' ELSE 'cold' END as priority, CASE WHEN DATEDIFF('day', n.applied_date, CURRENT_DATE) BETWEEN 7 AND 14 THEN 'Send follow-up email now (22% success rate at day 10)' WHEN DATEDIFF('day', n.applied_date, CURRENT_DATE) BETWEEN 15 AND 21 THEN 'Last chance follow-up (8% success rate)' ELSE 'Move on \u2014 mark as ghosted' END as recommended_action FROM notion.applications n WHERE n.status = 'applied' AND DATEDIFF('day', n.applied_date, CURRENT_DATE) >= 7 ORDER BY days_waiting ASC",
+    "sources_used": [
+      "notion.applications"
+    ],
+    "is_cross_source": false,
+    "rows_returned": 12,
+    "execution_ms": 1.24,
+    "used_cache": false,
+    "timestamp": "2026-05-27T16:38:56"
+  },
+  {
+    "query_id": "q_013",
+    "query_name": "rejection_patterns",
+    "sql": "SELECT n.role_title, COUNT(*) as total, SUM(CASE WHEN n.status = 'rejected' THEN 1 ELSE 0 END) as rejected, SUM(CASE WHEN n.status = 'ghosted' THEN 1 ELSE 0 END) as ghosted, SUM(CASE WHEN n.status = 'interviewing' THEN 1 ELSE 0 END) as interviewed, SUM(CASE WHEN n.status = 'offer' THEN 1 ELSE 0 END) as offers, ROUND( SUM(CASE WHEN n.status = 'rejected' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1 ) as rejection_rate, ROUND( SUM(CASE WHEN n.status = 'ghosted' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1 ) as ghost_rate, ROUND( (SUM(CASE WHEN n.status IN ('interviewing', 'offer') THEN 1 ELSE 0 END)) * 100.0 / COUNT(*), 1 ) as response_rate FROM notion.applications n GROUP BY n.role_title ORDER BY rejection_rate DESC",
+    "sources_used": [
+      "notion.applications"
+    ],
+    "is_cross_source": false,
+    "rows_returned": 6,
+    "execution_ms": 0.44,
+    "used_cache": false,
+    "timestamp": "2026-05-27T16:40:44"
+  },
+  {
+    "query_id": "q_014",
+    "query_name": "rejection_patterns",
+    "sql": "SELECT n.role_title, COUNT(*) as total, SUM(CASE WHEN n.status = 'rejected' THEN 1 ELSE 0 END) as rejected, SUM(CASE WHEN n.status = 'ghosted' THEN 1 ELSE 0 END) as ghosted, SUM(CASE WHEN n.status = 'interviewing' THEN 1 ELSE 0 END) as interviewed, SUM(CASE WHEN n.status = 'offer' THEN 1 ELSE 0 END) as offers, ROUND( SUM(CASE WHEN n.status = 'rejected' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1 ) as rejection_rate, ROUND( SUM(CASE WHEN n.status = 'ghosted' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1 ) as ghost_rate, ROUND( (SUM(CASE WHEN n.status IN ('interviewing', 'offer') THEN 1 ELSE 0 END)) * 100.0 / COUNT(*), 1 ) as response_rate FROM notion.applications n GROUP BY n.role_title ORDER BY rejection_rate DESC",
+    "sources_used": [
+      "notion.applications"
+    ],
+    "is_cross_source": false,
+    "rows_returned": 6,
+    "execution_ms": 0.49,
+    "used_cache": false,
+    "timestamp": "2026-05-27T16:40:44"
+  },
+  {
+    "query_id": "q_015",
+    "query_name": "skill_gap_detection",
+    "sql": "SELECT skill, COUNT(*) as times_required, MAX(CASE WHEN in_github = true THEN 1 ELSE 0 END) as in_github, MAX(CASE WHEN in_linkedin = true THEN 1 ELSE 0 END) as in_linkedin FROM ( SELECT skill_name as skill, (g.languages LIKE '%' || skill_name || '%') as in_github, (l.skills LIKE '%' || skill_name || '%') as in_linkedin FROM ( SELECT UNNEST(n.required_skills) as skill_name FROM notion.applications n WHERE n.status = 'rejected' ) skills JOIN github.profile g JOIN linkedin.skills l ) sub GROUP BY skill ORDER BY times_required DESC LIMIT 15",
+    "sources_used": [
+      "github.profile",
+      "linkedin.skills",
+      "notion.applications"
+    ],
+    "is_cross_source": true,
+    "rows_returned": 12,
+    "execution_ms": 0.64,
+    "used_cache": false,
+    "timestamp": "2026-05-27T16:40:44"
+  },
+  {
+    "query_id": "q_016",
+    "query_name": "rejection_patterns",
+    "sql": "SELECT n.role_title, COUNT(*) as total, SUM(CASE WHEN n.status = 'rejected' THEN 1 ELSE 0 END) as rejected, SUM(CASE WHEN n.status = 'ghosted' THEN 1 ELSE 0 END) as ghosted, SUM(CASE WHEN n.status = 'interviewing' THEN 1 ELSE 0 END) as interviewed, SUM(CASE WHEN n.status = 'offer' THEN 1 ELSE 0 END) as offers, ROUND( SUM(CASE WHEN n.status = 'rejected' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1 ) as rejection_rate, ROUND( SUM(CASE WHEN n.status = 'ghosted' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1 ) as ghost_rate, ROUND( (SUM(CASE WHEN n.status IN ('interviewing', 'offer') THEN 1 ELSE 0 END)) * 100.0 / COUNT(*), 1 ) as response_rate FROM notion.applications n GROUP BY n.role_title ORDER BY rejection_rate DESC",
+    "sources_used": [
+      "notion.applications"
+    ],
+    "is_cross_source": false,
+    "rows_returned": 6,
+    "execution_ms": 0.46,
+    "used_cache": false,
+    "timestamp": "2026-05-27T16:40:44"
+  },
+  {
+    "query_id": "q_017",
+    "query_name": "skill_gap_detection",
+    "sql": "SELECT skill, COUNT(*) as times_required, MAX(CASE WHEN in_github = true THEN 1 ELSE 0 END) as in_github, MAX(CASE WHEN in_linkedin = true THEN 1 ELSE 0 END) as in_linkedin FROM ( SELECT skill_name as skill, (g.languages LIKE '%' || skill_name || '%') as in_github, (l.skills LIKE '%' || skill_name || '%') as in_linkedin FROM ( SELECT UNNEST(n.required_skills) as skill_name FROM notion.applications n WHERE n.status = 'rejected' ) skills JOIN github.profile g JOIN linkedin.skills l ) sub GROUP BY skill ORDER BY times_required DESC LIMIT 15",
+    "sources_used": [
+      "github.profile",
+      "linkedin.skills",
+      "notion.applications"
+    ],
+    "is_cross_source": true,
+    "rows_returned": 12,
+    "execution_ms": 0.49,
+    "used_cache": false,
+    "timestamp": "2026-05-27T16:40:44"
+  },
+  {
+    "query_id": "q_018",
+    "query_name": "github_activity_correlation",
+    "sql": "SELECT n.company, n.applied_date, n.status, n.role_title, g.commits_count, g.active_repos, g.languages FROM notion.applications n JOIN github.activity g ON g.week = date_trunc('week', n.applied_date) WHERE n.status IN ('rejected', 'ghosted', 'interviewing', 'offer') ORDER BY n.applied_date DESC",
+    "sources_used": [
+      "github.activity",
+      "notion.applications"
+    ],
+    "is_cross_source": true,
+    "rows_returned": 26,
+    "execution_ms": 1.19,
+    "used_cache": false,
+    "timestamp": "2026-05-27T16:40:44"
+  },
+  {
+    "query_id": "q_019",
+    "query_name": "timing_analysis",
+    "sql": "SELECT CASE WHEN days_to_apply <= 1 THEN 'same_day' WHEN days_to_apply <= 2 THEN '1-2_days' WHEN days_to_apply <= 7 THEN '3-7_days' WHEN days_to_apply <= 14 THEN '1-2_weeks' ELSE '2_weeks_plus' END as timing_bucket, COUNT(*) as total, ROUND( SUM(CASE WHEN status IN ('interviewing', 'offer') THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1 ) as response_rate, ROUND( SUM(CASE WHEN status = 'ghosted' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1 ) as ghost_rate FROM notion.applications GROUP BY timing_bucket ORDER BY CASE timing_bucket WHEN 'same_day' THEN 1 WHEN '1-2_days' THEN 2 WHEN '3-7_days' THEN 3 WHEN '1-2_weeks' THEN 4 ELSE 5 END",
+    "sources_used": [
+      "notion.applications"
+    ],
+    "is_cross_source": false,
+    "rows_returned": 6,
+    "execution_ms": 0.44,
+    "used_cache": false,
+    "timestamp": "2026-05-27T16:40:44"
+  },
+  {
+    "query_id": "q_020",
+    "query_name": "followup_tracker",
+    "sql": "SELECT n.company, n.role_title, n.applied_date, DATEDIFF('day', n.applied_date, CURRENT_DATE) as days_waiting, CASE WHEN DATEDIFF('day', n.applied_date, CURRENT_DATE) BETWEEN 7 AND 14 THEN 'hot' WHEN DATEDIFF('day', n.applied_date, CURRENT_DATE) BETWEEN 15 AND 21 THEN 'warm' ELSE 'cold' END as priority, CASE WHEN DATEDIFF('day', n.applied_date, CURRENT_DATE) BETWEEN 7 AND 14 THEN 'Send follow-up email now (22% success rate at day 10)' WHEN DATEDIFF('day', n.applied_date, CURRENT_DATE) BETWEEN 15 AND 21 THEN 'Last chance follow-up (8% success rate)' ELSE 'Move on \u2014 mark as ghosted' END as recommended_action FROM notion.applications n WHERE n.status = 'applied' AND DATEDIFF('day', n.applied_date, CURRENT_DATE) >= 7 ORDER BY days_waiting ASC",
+    "sources_used": [
+      "notion.applications"
+    ],
+    "is_cross_source": false,
+    "rows_returned": 12,
+    "execution_ms": 0.69,
+    "used_cache": false,
+    "timestamp": "2026-05-27T16:40:44"
+  },
+  {
+    "query_id": "q_021",
+    "query_name": "github_activity_correlation",
+    "sql": "SELECT n.company, n.applied_date, n.status, n.role_title, g.commits_count, g.active_repos, g.languages FROM notion.applications n JOIN github.activity g ON g.week = date_trunc('week', n.applied_date) WHERE n.status IN ('rejected', 'ghosted', 'interviewing', 'offer') ORDER BY n.applied_date DESC",
+    "sources_used": [
+      "github.activity",
+      "notion.applications"
+    ],
+    "is_cross_source": true,
+    "rows_returned": 26,
+    "execution_ms": 1.03,
+    "used_cache": false,
+    "timestamp": "2026-05-27T16:40:44"
+  },
+  {
+    "query_id": "q_022",
+    "query_name": "timing_analysis",
+    "sql": "SELECT CASE WHEN days_to_apply <= 1 THEN 'same_day' WHEN days_to_apply <= 2 THEN '1-2_days' WHEN days_to_apply <= 7 THEN '3-7_days' WHEN days_to_apply <= 14 THEN '1-2_weeks' ELSE '2_weeks_plus' END as timing_bucket, COUNT(*) as total, ROUND( SUM(CASE WHEN status IN ('interviewing', 'offer') THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1 ) as response_rate, ROUND( SUM(CASE WHEN status = 'ghosted' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1 ) as ghost_rate FROM notion.applications GROUP BY timing_bucket ORDER BY CASE timing_bucket WHEN 'same_day' THEN 1 WHEN '1-2_days' THEN 2 WHEN '3-7_days' THEN 3 WHEN '1-2_weeks' THEN 4 ELSE 5 END",
+    "sources_used": [
+      "notion.applications"
+    ],
+    "is_cross_source": false,
+    "rows_returned": 6,
+    "execution_ms": 0.51,
+    "used_cache": false,
+    "timestamp": "2026-05-27T16:40:44"
+  },
+  {
+    "query_id": "q_023",
+    "query_name": "followup_tracker",
+    "sql": "SELECT n.company, n.role_title, n.applied_date, DATEDIFF('day', n.applied_date, CURRENT_DATE) as days_waiting, CASE WHEN DATEDIFF('day', n.applied_date, CURRENT_DATE) BETWEEN 7 AND 14 THEN 'hot' WHEN DATEDIFF('day', n.applied_date, CURRENT_DATE) BETWEEN 15 AND 21 THEN 'warm' ELSE 'cold' END as priority, CASE WHEN DATEDIFF('day', n.applied_date, CURRENT_DATE) BETWEEN 7 AND 14 THEN 'Send follow-up email now (22% success rate at day 10)' WHEN DATEDIFF('day', n.applied_date, CURRENT_DATE) BETWEEN 15 AND 21 THEN 'Last chance follow-up (8% success rate)' ELSE 'Move on \u2014 mark as ghosted' END as recommended_action FROM notion.applications n WHERE n.status = 'applied' AND DATEDIFF('day', n.applied_date, CURRENT_DATE) >= 7 ORDER BY days_waiting ASC",
+    "sources_used": [
+      "notion.applications"
+    ],
+    "is_cross_source": false,
+    "rows_returned": 12,
+    "execution_ms": 0.29,
+    "used_cache": false,
+    "timestamp": "2026-05-27T16:40:44"
+  }
+]

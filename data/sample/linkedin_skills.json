@@ -1,0 +1,10 @@
+[
+  { "name": "Python",       "endorsements": 24 },
+  { "name": "FastAPI",      "endorsements": 11 },
+  { "name": "Machine Learning", "endorsements": 8 },
+  { "name": "PostgreSQL",   "endorsements": 7 },
+  { "name": "AWS",          "endorsements": 5 },
+  { "name": "React",        "endorsements": 3 },
+  { "name": "REST APIs",    "endorsements": 14 },
+  { "name": "Git",          "endorsements": 18 }
+]

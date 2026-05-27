@@ -1,0 +1,426 @@
+"""CoralCon CLI - AI career agent powered by Coral SQL."""
+
+import os
+
+import click
+from dotenv import load_dotenv
+from rich.console import Console
+
+load_dotenv()
+
+from coralcon.agents import analyzer, recommender
+from coralcon.benchmarks.cache_benchmark import run_cache_benchmark
+from coralcon.cohort.report import build_cohort_report
+from coralcon.demo.judge_demo import demo_lines, run_judge_demo
+from coralcon.notion.client import NotionWriteClient
+from coralcon.orchestrator import CoralConOrchestrator
+from coralcon.privacy.report import write_privacy_report
+from coralcon.proof.report import build_proof_report, proof_summary
+from coralcon.queries import (
+    followup_tracker,
+    github_correlation,
+    rejection_patterns,
+    skill_gaps,
+    timing_analysis,
+)
+from coralcon.submission.pack_generator import generate_submission_pack
+from coralcon.utils import formatters as fmt
+from coralcon.utils.coral_client import check_coral_connection
+
+console = Console()
+
+
+@click.group()
+@click.version_option("0.1.0")
+def cli():
+    """CoralCon - AI career agent powered by Coral SQL."""
+
+
+@cli.command()
+@click.option("--no-ai", is_flag=True, help="Skip LLM analysis")
+@click.option("--no-dashboard", is_flag=True, help="Skip Notion dashboard update")
+@click.option("--no-actions", is_flag=True, help="Skip Notion action task creation")
+@click.option("--dry-run", is_flag=True, help="Preview Notion writes without creating them")
+def analyze(no_ai, no_dashboard, no_actions, dry_run):
+    """Run the full Phase 2 pipeline across all agents."""
+    fmt.print_header("FULL ANALYSIS", "Querying GitHub, Notion, and LinkedIn via Coral SQL...")
+
+    orchestrator = CoralConOrchestrator()
+    with fmt.spinner("Running Recon, Analyst, Dashboard, and Action agents..."):
+        result = orchestrator.run_full_analysis(
+            use_ai=not no_ai,
+            write_dashboard=not no_dashboard,
+            create_actions=not no_actions,
+            dry_run=True if dry_run else None,
+        )
+
+    insights = result["insights"]
+    _print_insight_summary(insights)
+    console.print()
+    fmt.print_rejection_table(insights["rejection_patterns"])
+    console.print()
+    fmt.print_skill_gaps(insights["skill_gaps"])
+    console.print()
+    fmt.print_github_signal(insights["github_correlation"])
+    fmt.print_action_items(insights["action_items"])
+
+    if insights.get("llm_insights"):
+        fmt.print_llm_insights(insights["llm_insights"])
+    elif insights.get("llm_error"):
+        console.print(f"  [dim]AI analysis skipped: {insights['llm_error']}[/dim]")
+
+    if not no_dashboard:
+        dashboard = result["dashboard"]
+        if dashboard.get("updated"):
+            console.print(f"\n  [bright_green]Dashboard updated:[/bright_green] {dashboard.get('url')}")
+        else:
+            console.print(f"\n  [dim]{dashboard.get('message')}[/dim]")
+
+    if not no_actions:
+        created = result["tasks_created"]
+        total_tasks = len(result["tasks"])
+        console.print(f"  [dim]Action agent prepared {total_tasks} task(s); {created} created in Notion.[/dim]")
+
+    console.print(
+        f"  [dim]Run [bright_cyan]coralcon followup[/bright_cyan] for "
+        f"{len(insights['followup_priorities'])} pending follow-ups.[/dim]\n"
+    )
+
+
+@cli.command()
+def recon():
+    """Run Agent 1 only and print source counts."""
+    fmt.print_header("RECON", "Scanning all Coral SQL sources...")
+    with fmt.spinner("Fetching raw data..."):
+        raw = CoralConOrchestrator().run_recon()
+
+    console.print()
+    console.print(f"  Applications:       [bright_cyan]{len(raw.get('applications', []))}[/bright_cyan]")
+    console.print(f"  GitHub weeks:       [bright_cyan]{len(raw.get('github_activity', []))}[/bright_cyan]")
+    console.print(f"  LinkedIn skills:    [bright_cyan]{len(raw.get('linkedin_profile', {}).get('skills', []))}[/bright_cyan]")
+    console.print(f"  Rejection patterns: [bright_cyan]{len(raw.get('rejection_patterns', []))}[/bright_cyan]")
+    console.print()
+
+
+@cli.command()
+@click.option("--no-ai", is_flag=True, help="Skip LLM analysis")
+def insights(no_ai):
+    """Run Recon + Analyst agents only."""
+    fmt.print_header("INSIGHTS", "Generating structured analysis...")
+    with fmt.spinner("Running analysis..."):
+        data = CoralConOrchestrator().run_insights(use_ai=not no_ai)
+
+    _print_insight_summary(data)
+    console.print()
+    fmt.print_rejection_table(data["rejection_patterns"])
+    console.print()
+    fmt.print_skill_gaps(data["skill_gaps"])
+    fmt.print_action_items(data["action_items"])
+    if data.get("llm_insights"):
+        fmt.print_llm_insights(data["llm_insights"])
+    elif data.get("llm_error"):
+        console.print(f"  [dim]AI analysis skipped: {data['llm_error']}[/dim]")
+
+
+@cli.command("judge-demo")
+@click.option("--sample", "sample_mode", is_flag=True, help="Force deterministic sample mode")
+@click.option("--real", "real_mode", is_flag=True, help="Use real Coral connections")
+def judge_demo(sample_mode, real_mode):
+    """Run an unbreakable judge demo pipeline."""
+    sample = not real_mode or sample_mode
+    result = run_judge_demo(sample=sample)
+    for line in demo_lines(result["result"], result["evidence_path"], sample=sample):
+        console.print(line)
+
+
+@cli.command()
+def proof():
+    """Print the Coral proof report for logged queries."""
+    if not proof_summary()["queries"]:
+        CoralConOrchestrator().run_full_analysis(use_ai=False, dry_run=True)
+    console.print(build_proof_report())
+
+
+@cli.command("privacy-report")
+def privacy_report():
+    """Generate a local-first privacy report."""
+    path = write_privacy_report()
+    console.print(build_file_message("Privacy report generated", path))
+
+
+@cli.command("benchmark-cache")
+@click.option("--sample", "sample_mode", is_flag=True, help="Force sample mode")
+def benchmark_cache(sample_mode):
+    """Measure observed repeated-query speedup."""
+    result = run_cache_benchmark(sample=sample_mode or True)
+    console.print("CACHE BENCHMARK")
+    console.print("=" * 15)
+    console.print(f"Query: {result['query']}")
+    console.print(f"Rows: {result['rows_returned']}")
+    console.print(f"Run 1: {result['run_1_ms']}ms")
+    console.print(f"Run 2: {result['run_2_ms']}ms")
+    console.print(f"Speedup: {result['speedup']}x")
+    console.print(result["metadata_note"])
+
+
+@cli.command("submit-pack")
+def submit_pack():
+    """Generate the hackathon submission folder."""
+    if not proof_summary()["queries"]:
+        CoralConOrchestrator().run_full_analysis(use_ai=False, dry_run=True)
+    paths = generate_submission_pack()
+    console.print("\n  [bright_green]Submission pack generated.[/bright_green]")
+    for path in paths:
+        console.print(f"  [dim]{path}[/dim]")
+    console.print()
+
+
+@cli.group()
+def cohort():
+    """Cohort analysis commands."""
+
+
+@cohort.command("analyze")
+def cohort_analyze():
+    """Analyze anonymized sample candidates."""
+    console.print(build_cohort_report())
+
+
+@cli.command()
+@click.option("--no-ai", is_flag=True, help="Skip LLM analysis")
+@click.option("--dry-run", is_flag=True, help="Preview dashboard update without writing to Notion")
+@click.option("--sample", "sample_mode", is_flag=True, help="Force sample mode")
+def dashboard(no_ai, dry_run, sample_mode):
+    """Run Recon + Analyst + Dashboard agents."""
+    if sample_mode:
+        os.environ["CORAL_AVAILABLE"] = "false"
+    fmt.print_header("DASHBOARD", "Updating the Notion dashboard when configured...")
+    with fmt.spinner("Preparing dashboard..."):
+        result = CoralConOrchestrator().run_dashboard(use_ai=not no_ai, dry_run=True if dry_run else None)
+
+    _print_insight_summary(result["insights"])
+    dashboard_result = result["dashboard"]
+    if dashboard_result.get("updated"):
+        console.print(f"\n  [bright_green]Dashboard updated:[/bright_green] {dashboard_result.get('url')}\n")
+    else:
+        console.print(f"\n  [dim]{dashboard_result.get('message')}[/dim]\n")
+
+
+@cli.command()
+@click.option("--no-ai", is_flag=True, help="Skip LLM analysis")
+@click.option("--dry-run", is_flag=True, help="Preview tasks without writing to Notion")
+def actions(no_ai, dry_run):
+    """Run Recon + Analyst + Action agents."""
+    fmt.print_header("ACTIONS", "Creating or previewing Notion action tasks...")
+    with fmt.spinner("Preparing tasks..."):
+        result = CoralConOrchestrator().run_actions(use_ai=not no_ai, dry_run=True if dry_run else None)
+
+    tasks = result["tasks"]
+    fmt.print_action_items([task["title"] for task in tasks])
+    created = sum(1 for task in tasks if task.get("created"))
+    console.print(f"  [dim]{created}/{len(tasks)} task(s) created in Notion.[/dim]\n")
+
+
+@cli.command()
+@click.option("--dashboard-page-id", help="Existing Notion page ID for dashboard writes")
+@click.option("--actions-db-id", help="Existing Notion database ID for action tasks")
+def setup(dashboard_page_id, actions_db_id):
+    """Store Notion dashboard/action target IDs in ~/.coralcon/config.json."""
+    client = NotionWriteClient()
+    if dashboard_page_id or actions_db_id:
+        config = client.save_setup(dashboard_page_id, actions_db_id)
+        console.print("\n  [bright_green]CoralCon config updated.[/bright_green]")
+        console.print(f"  Dashboard page: [dim]{config.get('dashboard_page_id', 'not set')}[/dim]")
+        console.print(f"  Actions DB:     [dim]{config.get('actions_db_id', 'not set')}[/dim]\n")
+        return
+
+    console.print("\n  [bold]Current CoralCon setup[/bold]")
+    console.print(f"  Dashboard page: [dim]{client.dashboard_page_id or 'not set'}[/dim]")
+    console.print(f"  Actions DB:     [dim]{client.actions_db_id or 'not set'}[/dim]")
+    console.print("  Notion token:   [dim]set[/dim]\n" if client.is_configured() else "  Notion token:   [dim]not set[/dim]\n")
+
+
+@cli.command()
+@click.option("--ai", is_flag=True, help="Add AI analysis")
+def rejections(ai):
+    """Rejection rate breakdown by role type."""
+    fmt.print_header("REJECTION PATTERNS")
+
+    with fmt.spinner("Querying notion.applications..."):
+        patterns = rejection_patterns.fetch()
+
+    fmt.print_rejection_table(patterns)
+
+    if ai:
+        with fmt.spinner("Analyzing..."):
+            try:
+                text = analyzer.generate_rejection_decoder(patterns)
+                fmt.print_llm_insights(text)
+            except Exception as exc:
+                console.print(f"  [dim]AI skipped: {exc}[/dim]")
+
+
+@cli.command()
+@click.option("--ai", is_flag=True, help="Add AI analysis")
+def gaps(ai):
+    """Skill gap analysis: what roles want vs what your profile shows."""
+    fmt.print_header("SKILL GAP ANALYSIS")
+
+    with fmt.spinner("Cross-referencing rejected applications with GitHub + LinkedIn..."):
+        gap_data = skill_gaps.fetch()
+        github_data = github_correlation.fetch()
+
+    fmt.print_skill_gaps(gap_data)
+
+    if ai:
+        github_langs = []
+        for row in github_data:
+            langs = row.get("languages", [])
+            if isinstance(langs, list):
+                github_langs.extend(langs)
+        with fmt.spinner("Generating recommendations..."):
+            try:
+                text = analyzer.generate_skill_gap_summary(gap_data, github_langs)
+                fmt.print_llm_insights(text)
+            except Exception as exc:
+                console.print(f"  [dim]AI skipped: {exc}[/dim]")
+
+
+@cli.command()
+def timing():
+    """Application timing patterns: does applying early matter?"""
+    fmt.print_header("TIMING ANALYSIS")
+
+    with fmt.spinner("Analyzing application timing..."):
+        data = timing_analysis.fetch()
+
+    from rich import box
+    from rich.table import Table
+
+    table = Table(
+        title="[bold]RESPONSE RATE BY APPLICATION TIMING[/bold]",
+        box=box.SIMPLE_HEAD,
+        border_style="dim",
+        header_style="bold bright_cyan",
+    )
+    table.add_column("TIMING", style="white", min_width=18)
+    table.add_column("APPLICATIONS", justify="right")
+    table.add_column("RESPONSE RATE", justify="right")
+    table.add_column("GHOST RATE", justify="right")
+
+    for row in data:
+        resp = row.get("response_rate", 0)
+        ghost = row.get("ghost_rate", 0)
+        resp_color = "bright_green" if resp >= 20 else ("yellow" if resp >= 10 else "bright_red")
+        table.add_row(
+            row.get("timing_bucket", "").replace("_", " "),
+            str(row.get("total", 0)),
+            f"[{resp_color}]{resp:.0f}%[/{resp_color}]",
+            f"[dim]{ghost:.0f}%[/dim]",
+        )
+
+    console.print()
+    console.print(table)
+
+
+@cli.command()
+def followup():
+    """Follow-up priority list: who to email and when."""
+    fmt.print_header("FOLLOW-UP QUEUE")
+
+    with fmt.spinner("Checking pending applications..."):
+        data = followup_tracker.fetch()
+
+    if not data:
+        console.print("\n  [bright_green]OK[/bright_green] No pending follow-ups needed.\n")
+        return
+
+    prioritized = recommender.prioritize_followups(data)
+    fmt.print_followup_table(prioritized)
+
+    hot = sum(1 for item in data if item.get("priority") == "hot")
+    if hot > 0:
+        console.print(f"\n  [bright_red]Alert:[/bright_red] {hot} applications are in the optimal follow-up window.")
+    console.print()
+
+
+@cli.command("github-check")
+def github_check():
+    """GitHub profile health check: are recruiters seeing activity?"""
+    fmt.print_header("GITHUB SIGNAL CHECK")
+
+    with fmt.spinner("Correlating GitHub commits with application outcomes..."):
+        data = github_correlation.fetch()
+        signal = recommender.compute_github_signal(data, data)
+
+    fmt.print_github_signal(signal)
+
+    active = signal.get("ghost_rate_active_weeks", 0)
+    inactive = signal.get("ghost_rate_inactive_weeks", 0)
+    diff = inactive - active
+
+    if diff > 30:
+        console.print(
+            f"  [bright_red]Critical:[/bright_red] Your ghost rate is {diff:.0f}% higher in weeks "
+            "you do not commit. Recruiters are checking your GitHub.\n"
+        )
+    elif diff > 10:
+        console.print(f"  [yellow]Warning:[/yellow] Moderate GitHub/activity correlation ({diff:.0f}% difference).\n")
+    else:
+        console.print("  [bright_green]OK[/bright_green] GitHub activity has limited correlation with ghost rate.\n")
+
+
+@cli.command()
+def status():
+    """Check Coral connection and data sources."""
+    fmt.print_header("DATA SOURCE STATUS")
+
+    conn = check_coral_connection()
+
+    console.print()
+    items = [
+        ("Coral CLI", conn["coral_installed"]),
+        ("GitHub source", conn["github_connected"]),
+        ("Notion source", conn["notion_connected"]),
+        ("LinkedIn source", conn["linkedin_connected"]),
+    ]
+
+    for name, ok in items:
+        marker = "[bright_green]OK[/bright_green]" if ok else "[bright_red]MISSING[/bright_red]"
+        label = "[dim](sample data)[/dim]" if not ok else ""
+        console.print(f"  {marker}  {name} {label}")
+
+    if conn["using_sample_data"]:
+        console.print("\n  [dim]Running on sample data. Set CORAL_AVAILABLE=true once Coral is connected.[/dim]")
+    console.print()
+
+
+@cli.command()
+@click.option("--host", default="127.0.0.1", help="Host to bind to")
+@click.option("--port", default=8000, help="Port to bind to")
+def serve(host, port):
+    """Launch the local FastAPI web dashboard."""
+    import uvicorn
+
+    console.print(f"\n  [bright_cyan]CoralCon Dashboard[/bright_cyan] -> [underline]http://{host}:{port}[/underline]\n")
+    uvicorn.run("web.app:app", host=host, port=port, reload=False)
+
+
+def _print_insight_summary(insights: dict) -> None:
+    console.print()
+    fmt.print_stat_row(
+        {
+            "APPLICATIONS": (insights["total_applications"], "white"),
+            "RESPONSE RATE": (f"{insights['response_rate']:.0f}%", "bright_cyan"),
+            "HEALTH SCORE": (f"{insights['overall_health_score']}/100", "yellow"),
+            "OFFER RATE": (f"{insights['offer_rate']:.0f}%", "bright_green"),
+        }
+    )
+
+
+def build_file_message(label: str, path) -> str:
+    return f"\n  [bright_green]{label}:[/bright_green] [dim]{path}[/dim]\n"
+
+
+if __name__ == "__main__":
+    cli()

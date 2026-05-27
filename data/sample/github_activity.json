@@ -1,0 +1,22 @@
+[
+  { "week": "2025-01-06", "commits_count": 0, "active_repos": 0, "languages": [] },
+  { "week": "2025-01-13", "commits_count": 0, "active_repos": 0, "languages": [] },
+  { "week": "2025-01-20", "commits_count": 14, "active_repos": 3, "languages": ["Python", "JavaScript"] },
+  { "week": "2025-01-27", "commits_count": 22, "active_repos": 4, "languages": ["Python", "FastAPI"] },
+  { "week": "2025-02-03", "commits_count": 8,  "active_repos": 2, "languages": ["Python"] },
+  { "week": "2025-02-10", "commits_count": 0,  "active_repos": 0, "languages": [] },
+  { "week": "2025-02-17", "commits_count": 0,  "active_repos": 0, "languages": [] },
+  { "week": "2025-02-24", "commits_count": 0,  "active_repos": 0, "languages": [] },
+  { "week": "2025-03-03", "commits_count": 31, "active_repos": 5, "languages": ["Python", "TypeScript", "Docker"] },
+  { "week": "2025-03-10", "commits_count": 19, "active_repos": 4, "languages": ["Python", "FastAPI"] },
+  { "week": "2025-03-17", "commits_count": 11, "active_repos": 3, "languages": ["Python"] },
+  { "week": "2025-03-24", "commits_count": 0,  "active_repos": 0, "languages": [] },
+  { "week": "2025-03-31", "commits_count": 0,  "active_repos": 0, "languages": [] },
+  { "week": "2025-04-07", "commits_count": 5,  "active_repos": 2, "languages": ["Python"] },
+  { "week": "2025-04-14", "commits_count": 27, "active_repos": 5, "languages": ["Python", "ML", "Jupyter"] },
+  { "week": "2025-04-21", "commits_count": 18, "active_repos": 4, "languages": ["Python", "FastAPI"] },
+  { "week": "2025-04-28", "commits_count": 0,  "active_repos": 0, "languages": [] },
+  { "week": "2025-05-05", "commits_count": 0,  "active_repos": 0, "languages": [] },
+  { "week": "2025-05-12", "commits_count": 9,  "active_repos": 2, "languages": ["Python"] },
+  { "week": "2025-05-19", "commits_count": 34, "active_repos": 6, "languages": ["Python", "FastAPI", "TypeScript"] }
+]
