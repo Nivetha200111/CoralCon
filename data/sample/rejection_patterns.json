@@ -1,0 +1,68 @@
+[
+  {
+    "role_title": "React Frontend Engineer",
+    "total": 38,
+    "rejected": 31,
+    "ghosted": 5,
+    "interviewed": 2,
+    "offers": 0,
+    "rejection_rate": 81.6,
+    "ghost_rate": 13.2,
+    "response_rate": 5.3
+  },
+  {
+    "role_title": "DevOps Engineer",
+    "total": 22,
+    "rejected": 17,
+    "ghosted": 4,
+    "interviewed": 1,
+    "offers": 0,
+    "rejection_rate": 77.3,
+    "ghost_rate": 18.2,
+    "response_rate": 4.5
+  },
+  {
+    "role_title": "Full Stack Engineer",
+    "total": 31,
+    "rejected": 19,
+    "ghosted": 7,
+    "interviewed": 4,
+    "offers": 1,
+    "rejection_rate": 61.3,
+    "ghost_rate": 22.6,
+    "response_rate": 16.1
+  },
+  {
+    "role_title": "AI/ML Engineer",
+    "total": 18,
+    "rejected": 10,
+    "ghosted": 4,
+    "interviewed": 3,
+    "offers": 1,
+    "rejection_rate": 55.6,
+    "ghost_rate": 22.2,
+    "response_rate": 22.2
+  },
+  {
+    "role_title": "Backend Engineer",
+    "total": 24,
+    "rejected": 12,
+    "ghosted": 6,
+    "interviewed": 5,
+    "offers": 1,
+    "rejection_rate": 50.0,
+    "ghost_rate": 25.0,
+    "response_rate": 25.0
+  },
+  {
+    "role_title": "Python Developer",
+    "total": 14,
+    "rejected": 5,
+    "ghosted": 3,
+    "interviewed": 5,
+    "offers": 1,
+    "rejection_rate": 35.7,
+    "ghost_rate": 21.4,
+    "response_rate": 42.9
+  }
+]

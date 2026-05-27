@@ -1,0 +1,1 @@
+"""Coral query proof logging."""

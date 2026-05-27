@@ -1,0 +1,82 @@
+[
+  {
+    "id": "app_001",
+    "company": "Stripe",
+    "role_title": "React Frontend Engineer",
+    "applied_date": "2025-01-07",
+    "status": "ghosted",
+    "required_skills": ["React", "TypeScript", "Next.js"],
+    "salary_range": "$140k-$180k",
+    "source": "Notion"
+  },
+  {
+    "id": "app_002",
+    "company": "Linear",
+    "role_title": "Python Developer",
+    "applied_date": "2025-01-21",
+    "status": "interviewing",
+    "required_skills": ["Python", "FastAPI", "PostgreSQL"],
+    "salary_range": "$130k-$170k",
+    "source": "Notion"
+  },
+  {
+    "id": "app_003",
+    "company": "Figma",
+    "role_title": "Backend Engineer",
+    "applied_date": "2025-01-28",
+    "status": "offer",
+    "required_skills": ["Python", "System Design", "PostgreSQL"],
+    "salary_range": "$150k-$195k",
+    "source": "Notion"
+  },
+  {
+    "id": "app_004",
+    "company": "PlanetScale",
+    "role_title": "DevOps Engineer",
+    "applied_date": "2025-02-04",
+    "status": "rejected",
+    "required_skills": ["Docker", "Kubernetes", "Terraform"],
+    "salary_range": "$135k-$175k",
+    "source": "Notion"
+  },
+  {
+    "id": "app_005",
+    "company": "GitHub",
+    "role_title": "AI/ML Engineer",
+    "applied_date": "2025-03-04",
+    "status": "interviewing",
+    "required_skills": ["Python", "Machine Learning", "TypeScript"],
+    "salary_range": "$160k-$210k",
+    "source": "Notion"
+  },
+  {
+    "id": "app_006",
+    "company": "Scale AI",
+    "role_title": "React Frontend Engineer",
+    "applied_date": "2025-04-22",
+    "status": "rejected",
+    "required_skills": ["React", "TypeScript", "GraphQL"],
+    "salary_range": "$145k-$185k",
+    "source": "Notion"
+  },
+  {
+    "id": "app_007",
+    "company": "Loom",
+    "role_title": "Backend Engineer",
+    "applied_date": "2025-05-14",
+    "status": "applied",
+    "required_skills": ["Python", "Redis", "System Design"],
+    "salary_range": "$140k-$180k",
+    "source": "Notion"
+  },
+  {
+    "id": "app_008",
+    "company": "Plaid",
+    "role_title": "AI/ML Engineer",
+    "applied_date": "2025-05-20",
+    "status": "applied",
+    "required_skills": ["Python", "Machine Learning", "PostgreSQL"],
+    "salary_range": "$155k-$205k",
+    "source": "Notion"
+  }
+]

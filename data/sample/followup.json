@@ -1,0 +1,14 @@
+[
+  { "company": "Stripe",      "role_title": "React Frontend Engineer",  "applied_date": "2025-05-10", "days_waiting": 17, "priority": "warm", "recommended_action": "Last chance follow-up (8% success rate)" },
+  { "company": "Vercel",      "role_title": "Full Stack Engineer",       "applied_date": "2025-05-11", "days_waiting": 16, "priority": "warm", "recommended_action": "Last chance follow-up (8% success rate)" },
+  { "company": "Loom",        "role_title": "Backend Engineer",          "applied_date": "2025-05-14", "days_waiting": 13, "priority": "hot",  "recommended_action": "Send follow-up email now (22% success rate at day 10)" },
+  { "company": "Retool",      "role_title": "Python Developer",          "applied_date": "2025-05-14", "days_waiting": 13, "priority": "hot",  "recommended_action": "Send follow-up email now (22% success rate at day 10)" },
+  { "company": "Postman",     "role_title": "AI/ML Engineer",            "applied_date": "2025-05-15", "days_waiting": 12, "priority": "hot",  "recommended_action": "Send follow-up email now (22% success rate at day 10)" },
+  { "company": "Amplitude",   "role_title": "Backend Engineer",          "applied_date": "2025-05-15", "days_waiting": 12, "priority": "hot",  "recommended_action": "Send follow-up email now (22% success rate at day 10)" },
+  { "company": "Brex",        "role_title": "Full Stack Engineer",       "applied_date": "2025-05-16", "days_waiting": 11, "priority": "hot",  "recommended_action": "Send follow-up email now (22% success rate at day 10)" },
+  { "company": "Deel",        "role_title": "Backend Engineer",          "applied_date": "2025-05-17", "days_waiting": 10, "priority": "hot",  "recommended_action": "Send follow-up email now (22% success rate at day 10)" },
+  { "company": "Rippling",    "role_title": "Python Developer",          "applied_date": "2025-05-18", "days_waiting": 9,  "priority": "hot",  "recommended_action": "Send follow-up email now (22% success rate at day 10)" },
+  { "company": "Ramp",        "role_title": "Full Stack Engineer",       "applied_date": "2025-05-18", "days_waiting": 9,  "priority": "hot",  "recommended_action": "Send follow-up email now (22% success rate at day 10)" },
+  { "company": "Mercury",     "role_title": "Backend Engineer",          "applied_date": "2025-05-19", "days_waiting": 8,  "priority": "hot",  "recommended_action": "Send follow-up email now (22% success rate at day 10)" },
+  { "company": "Plaid",       "role_title": "AI/ML Engineer",            "applied_date": "2025-05-20", "days_waiting": 7,  "priority": "hot",  "recommended_action": "Send follow-up email now (22% success rate at day 10)" }
+]

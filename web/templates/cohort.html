@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CoralCon Cohort</title>
+  <style>
+    body { margin: 0; background: #0a0a0a; color: #e0e0e0; font: 14px/1.5 Inter, system-ui, sans-serif; padding: 32px; }
+    a { color: #00d4ff; }
+    section { border: 1px solid #222; padding: 16px; margin: 16px 0; }
+  </style>
+</head>
+<body>
+  <p><a href="/dashboard">Dashboard</a> / <a href="/proof">Proof</a> / Cohort / <a href="/privacy">Privacy</a></p>
+  <h1>Cohort Intelligence</h1>
+  <p>Candidates analyzed: {{ cohort.candidates_analyzed }}</p>
+  <section>
+    <h2>Leaderboard</h2>
+    {% for row in cohort.leaderboard %}
+      <p>{{ row.candidate }} - {{ row.health_score }}/100 - {{ row.best_fit }}</p>
+    {% endfor %}
+  </section>
+  <section>
+    <h2>Placement Actions</h2>
+    {% for action in cohort.placement_actions %}
+      <p>{{ loop.index }}. {{ action }}</p>
+    {% endfor %}
+  </section>
+</body>
+</html>

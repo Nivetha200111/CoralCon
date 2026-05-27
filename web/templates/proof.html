@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CoralCon Proof</title>
+  <style>
+    body { margin: 0; background: #0a0a0a; color: #e0e0e0; font: 14px/1.5 Inter, system-ui, sans-serif; padding: 32px; }
+    a { color: #00d4ff; }
+    pre { white-space: pre-wrap; background: #111; border: 1px solid #222; padding: 16px; overflow: auto; }
+    .query { border: 1px solid #222; padding: 16px; margin: 16px 0; }
+    .badge { color: #00ff88; font-family: monospace; }
+  </style>
+</head>
+<body>
+  <p><a href="/dashboard">Dashboard</a> / Proof / <a href="/cohort">Cohort</a> / <a href="/privacy">Privacy</a></p>
+  <h1>Coral Proof</h1>
+  <p>Total queries: {{ proof.total_queries }} | Cross-source joins: {{ proof.cross_source_queries }}</p>
+  {% for query in proof.queries %}
+  <section class="query">
+    <div class="badge">{{ query.query_id }} - {{ query.query_name }}</div>
+    <p>Sources: {{ query.sources_used | join(", ") }} | Rows: {{ query.rows_returned }} | {{ query.execution_ms }}ms</p>
+    <pre>{{ query.sql }}</pre>
+  </section>
+  {% endfor %}
+</body>
+</html>

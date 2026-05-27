@@ -1,0 +1,118 @@
+# CoralCon — LinkedIn GDPR File Source Spec
+# Reads LinkedIn data export CSVs as SQL tables
+#
+# Setup:
+#   1. Go to linkedin.com → Settings → Data Privacy → Get a copy of your data
+#   2. Request: Connections, Skills, Profile, Positions
+#   3. Download and extract to data/linkedin_export/
+#   4. coral source add ./coral/sources/linkedin/source.yaml
+
+name: linkedin
+display_name: LinkedIn (GDPR Export)
+description: >
+  Reads LinkedIn data export CSV files as queryable SQL tables.
+  Covers profile, skills, positions, and connections.
+
+type: file
+
+config:
+  base_path: "data/linkedin_export"
+
+tables:
+  - name: profile
+    file: Profile.csv
+    format: csv
+    description: LinkedIn profile data — headline, summary, location
+    columns:
+      - name: first_name
+        type: string
+      - name: last_name
+        type: string
+      - name: headline
+        type: string
+      - name: summary
+        type: string
+        nullable: true
+      - name: location
+        type: string
+        nullable: true
+      - name: industry
+        type: string
+        nullable: true
+
+  - name: skills
+    file: Skills.csv
+    format: csv
+    description: LinkedIn skills with endorsement counts
+    columns:
+      - name: name
+        type: string
+      - name: endorsements
+        type: integer
+        default: 0
+
+  - name: positions
+    file: Positions.csv
+    format: csv
+    description: Work history — company, title, dates
+    columns:
+      - name: company_name
+        type: string
+      - name: title
+        type: string
+      - name: description
+        type: string
+        nullable: true
+      - name: location
+        type: string
+        nullable: true
+      - name: started_on
+        type: date
+        nullable: true
+      - name: finished_on
+        type: date
+        nullable: true
+
+  - name: connections
+    file: Connections.csv
+    format: csv
+    description: LinkedIn connections — name, company, connected date
+    columns:
+      - name: first_name
+        type: string
+      - name: last_name
+        type: string
+      - name: email_address
+        type: string
+        nullable: true
+      - name: company
+        type: string
+        nullable: true
+      - name: position
+        type: string
+        nullable: true
+      - name: connected_on
+        type: date
+        nullable: true
+
+example_queries:
+  - description: All skills with endorsements
+    sql: SELECT name, endorsements FROM linkedin.skills ORDER BY endorsements DESC
+
+  - description: Current position
+    sql: >
+      SELECT company_name, title, started_on
+      FROM linkedin.positions
+      WHERE finished_on IS NULL
+      ORDER BY started_on DESC
+      LIMIT 1
+
+  - description: Skill gap check
+    sql: >
+      SELECT l.name, l.endorsements
+      FROM linkedin.skills l
+      WHERE l.name NOT IN (
+        SELECT UNNEST(required_skills)
+        FROM notion.applications
+        WHERE status = 'rejected'
+      )

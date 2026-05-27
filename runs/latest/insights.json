@@ -1,0 +1,433 @@
+{
+  "total_applications": 147,
+  "response_rate": 16.3,
+  "interview_rate": 13.6,
+  "offer_rate": 2.7,
+  "rejection_patterns": [
+    {
+      "role_title": "React Frontend Engineer",
+      "total": 38,
+      "rejected": 31,
+      "ghosted": 5,
+      "interviewed": 2,
+      "offers": 0,
+      "rejection_rate": 81.6,
+      "ghost_rate": 13.2,
+      "response_rate": 5.3
+    },
+    {
+      "role_title": "DevOps Engineer",
+      "total": 22,
+      "rejected": 17,
+      "ghosted": 4,
+      "interviewed": 1,
+      "offers": 0,
+      "rejection_rate": 77.3,
+      "ghost_rate": 18.2,
+      "response_rate": 4.5
+    },
+    {
+      "role_title": "Full Stack Engineer",
+      "total": 31,
+      "rejected": 19,
+      "ghosted": 7,
+      "interviewed": 4,
+      "offers": 1,
+      "rejection_rate": 61.3,
+      "ghost_rate": 22.6,
+      "response_rate": 16.1
+    },
+    {
+      "role_title": "AI/ML Engineer",
+      "total": 18,
+      "rejected": 10,
+      "ghosted": 4,
+      "interviewed": 3,
+      "offers": 1,
+      "rejection_rate": 55.6,
+      "ghost_rate": 22.2,
+      "response_rate": 22.2
+    },
+    {
+      "role_title": "Backend Engineer",
+      "total": 24,
+      "rejected": 12,
+      "ghosted": 6,
+      "interviewed": 5,
+      "offers": 1,
+      "rejection_rate": 50.0,
+      "ghost_rate": 25.0,
+      "response_rate": 25.0
+    },
+    {
+      "role_title": "Python Developer",
+      "total": 14,
+      "rejected": 5,
+      "ghosted": 3,
+      "interviewed": 5,
+      "offers": 1,
+      "rejection_rate": 35.7,
+      "ghost_rate": 21.4,
+      "response_rate": 42.9
+    }
+  ],
+  "timing_insights": [
+    {
+      "role_title": "React Frontend Engineer",
+      "total": 38,
+      "rejected": 31,
+      "ghosted": 5,
+      "interviewed": 2,
+      "offers": 0,
+      "rejection_rate": 81.6,
+      "ghost_rate": 13.2,
+      "response_rate": 5.3
+    },
+    {
+      "role_title": "DevOps Engineer",
+      "total": 22,
+      "rejected": 17,
+      "ghosted": 4,
+      "interviewed": 1,
+      "offers": 0,
+      "rejection_rate": 77.3,
+      "ghost_rate": 18.2,
+      "response_rate": 4.5
+    },
+    {
+      "role_title": "Full Stack Engineer",
+      "total": 31,
+      "rejected": 19,
+      "ghosted": 7,
+      "interviewed": 4,
+      "offers": 1,
+      "rejection_rate": 61.3,
+      "ghost_rate": 22.6,
+      "response_rate": 16.1
+    },
+    {
+      "role_title": "AI/ML Engineer",
+      "total": 18,
+      "rejected": 10,
+      "ghosted": 4,
+      "interviewed": 3,
+      "offers": 1,
+      "rejection_rate": 55.6,
+      "ghost_rate": 22.2,
+      "response_rate": 22.2
+    },
+    {
+      "role_title": "Backend Engineer",
+      "total": 24,
+      "rejected": 12,
+      "ghosted": 6,
+      "interviewed": 5,
+      "offers": 1,
+      "rejection_rate": 50.0,
+      "ghost_rate": 25.0,
+      "response_rate": 25.0
+    },
+    {
+      "role_title": "Python Developer",
+      "total": 14,
+      "rejected": 5,
+      "ghosted": 3,
+      "interviewed": 5,
+      "offers": 1,
+      "rejection_rate": 35.7,
+      "ghost_rate": 21.4,
+      "response_rate": 42.9
+    }
+  ],
+  "skill_gaps": [
+    {
+      "skill": "TypeScript",
+      "times_required": 34,
+      "in_github": false,
+      "in_linkedin": false,
+      "priority": "critical"
+    },
+    {
+      "skill": "React",
+      "times_required": 38,
+      "in_github": false,
+      "in_linkedin": true,
+      "priority": "critical"
+    },
+    {
+      "skill": "Docker",
+      "times_required": 28,
+      "in_github": true,
+      "in_linkedin": false,
+      "priority": "high"
+    },
+    {
+      "skill": "Kubernetes",
+      "times_required": 22,
+      "in_github": false,
+      "in_linkedin": false,
+      "priority": "critical"
+    },
+    {
+      "skill": "CI/CD",
+      "times_required": 19,
+      "in_github": false,
+      "in_linkedin": false,
+      "priority": "high"
+    },
+    {
+      "skill": "System Design",
+      "times_required": 17,
+      "in_github": false,
+      "in_linkedin": false,
+      "priority": "high"
+    },
+    {
+      "skill": "AWS",
+      "times_required": 24,
+      "in_github": false,
+      "in_linkedin": true,
+      "priority": "high"
+    },
+    {
+      "skill": "PostgreSQL",
+      "times_required": 15,
+      "in_github": true,
+      "in_linkedin": true,
+      "priority": "medium"
+    },
+    {
+      "skill": "GraphQL",
+      "times_required": 11,
+      "in_github": false,
+      "in_linkedin": false,
+      "priority": "medium"
+    },
+    {
+      "skill": "Redis",
+      "times_required": 9,
+      "in_github": false,
+      "in_linkedin": false,
+      "priority": "medium"
+    },
+    {
+      "skill": "Terraform",
+      "times_required": 8,
+      "in_github": false,
+      "in_linkedin": false,
+      "priority": "medium"
+    },
+    {
+      "skill": "Next.js",
+      "times_required": 21,
+      "in_github": false,
+      "in_linkedin": false,
+      "priority": "critical"
+    }
+  ],
+  "github_correlation": {
+    "ghost_rate_active_weeks": 0.0,
+    "ghost_rate_inactive_weeks": 70.0,
+    "top_language": "Python",
+    "total_repos": 6
+  },
+  "followup_priorities": [
+    {
+      "company": "Loom",
+      "role_title": "Backend Engineer",
+      "applied_date": "2025-05-14",
+      "days_waiting": 13,
+      "priority": "hot",
+      "recommended_action": "Send follow-up email now (22% success rate at day 10)"
+    },
+    {
+      "company": "Retool",
+      "role_title": "Python Developer",
+      "applied_date": "2025-05-14",
+      "days_waiting": 13,
+      "priority": "hot",
+      "recommended_action": "Send follow-up email now (22% success rate at day 10)"
+    },
+    {
+      "company": "Postman",
+      "role_title": "AI/ML Engineer",
+      "applied_date": "2025-05-15",
+      "days_waiting": 12,
+      "priority": "hot",
+      "recommended_action": "Send follow-up email now (22% success rate at day 10)"
+    },
+    {
+      "company": "Amplitude",
+      "role_title": "Backend Engineer",
+      "applied_date": "2025-05-15",
+      "days_waiting": 12,
+      "priority": "hot",
+      "recommended_action": "Send follow-up email now (22% success rate at day 10)"
+    },
+    {
+      "company": "Brex",
+      "role_title": "Full Stack Engineer",
+      "applied_date": "2025-05-16",
+      "days_waiting": 11,
+      "priority": "hot",
+      "recommended_action": "Send follow-up email now (22% success rate at day 10)"
+    },
+    {
+      "company": "Deel",
+      "role_title": "Backend Engineer",
+      "applied_date": "2025-05-17",
+      "days_waiting": 10,
+      "priority": "hot",
+      "recommended_action": "Send follow-up email now (22% success rate at day 10)"
+    },
+    {
+      "company": "Rippling",
+      "role_title": "Python Developer",
+      "applied_date": "2025-05-18",
+      "days_waiting": 9,
+      "priority": "hot",
+      "recommended_action": "Send follow-up email now (22% success rate at day 10)"
+    },
+    {
+      "company": "Ramp",
+      "role_title": "Full Stack Engineer",
+      "applied_date": "2025-05-18",
+      "days_waiting": 9,
+      "priority": "hot",
+      "recommended_action": "Send follow-up email now (22% success rate at day 10)"
+    },
+    {
+      "company": "Mercury",
+      "role_title": "Backend Engineer",
+      "applied_date": "2025-05-19",
+      "days_waiting": 8,
+      "priority": "hot",
+      "recommended_action": "Send follow-up email now (22% success rate at day 10)"
+    },
+    {
+      "company": "Plaid",
+      "role_title": "AI/ML Engineer",
+      "applied_date": "2025-05-20",
+      "days_waiting": 7,
+      "priority": "hot",
+      "recommended_action": "Send follow-up email now (22% success rate at day 10)"
+    },
+    {
+      "company": "Stripe",
+      "role_title": "React Frontend Engineer",
+      "applied_date": "2025-05-10",
+      "days_waiting": 17,
+      "priority": "warm",
+      "recommended_action": "Last chance follow-up (8% success rate)"
+    },
+    {
+      "company": "Vercel",
+      "role_title": "Full Stack Engineer",
+      "applied_date": "2025-05-11",
+      "days_waiting": 16,
+      "priority": "warm",
+      "recommended_action": "Last chance follow-up (8% success rate)"
+    }
+  ],
+  "action_items": [
+    "Stop applying to React Frontend Engineer roles until you fix your profile. 82% rejection rate.",
+    "Build 1 project using TypeScript this week. Missing from 34 rejected applications.",
+    "Commit to GitHub daily during job search. Your ghost rate drops 70% in active commit weeks.",
+    "Send follow-up emails to your 12 pending applications. Day 10 follow-ups have 22% response rate."
+  ],
+  "overall_health_score": 25,
+  "evidence_insights": [
+    {
+      "id": "insight_001",
+      "title": "React Frontend Engineer rejection pattern",
+      "severity": "high",
+      "claim": "React Frontend Engineer roles have a 81.6% rejection rate.",
+      "evidence": {
+        "query_id": "q_005",
+        "rows_used": 38,
+        "sources": [
+          "notion.applications"
+        ],
+        "supporting_numbers": {
+          "applications": 38,
+          "rejections": 31,
+          "ghosted": 5,
+          "rejection_rate": 81.6
+        }
+      },
+      "root_cause": "The role category is currently outperforming the visible proof-of-work on the profile.",
+      "recommended_action": "Pause cold applications to React Frontend Engineer roles and ship one targeted proof-of-work project.",
+      "expected_impact": "Improve profile-fit before adding more applications to this bucket.",
+      "confidence": 0.84
+    },
+    {
+      "id": "insight_002",
+      "title": "React proof gap",
+      "severity": "high",
+      "claim": "React appears in 38 rejected applications but is missing from key profile signals.",
+      "evidence": {
+        "query_id": "q_007",
+        "rows_used": 38,
+        "sources": [
+          "github.profile",
+          "linkedin.skills",
+          "notion.applications"
+        ],
+        "supporting_numbers": {
+          "times_required": 38,
+          "in_github": false,
+          "in_linkedin": true
+        }
+      },
+      "root_cause": "The job descriptions ask for the skill, but the public evidence is weak or absent.",
+      "recommended_action": "Build and pin one React project within 7 days.",
+      "expected_impact": "Raise recruiter confidence for roles requiring this skill.",
+      "confidence": 0.88
+    },
+    {
+      "id": "insight_003",
+      "title": "GitHub activity signal",
+      "severity": "high",
+      "claim": "Ghost rate is 70.0 points higher in inactive GitHub weeks.",
+      "evidence": {
+        "query_id": "q_006",
+        "rows_used": 26,
+        "sources": [
+          "github.activity",
+          "notion.applications"
+        ],
+        "supporting_numbers": {
+          "active_week_ghost_rate": 0.0,
+          "inactive_week_ghost_rate": 70.0,
+          "ghost_rate_gap": 70.0
+        }
+      },
+      "root_cause": "Recruiter-visible activity drops during parts of the application cycle.",
+      "recommended_action": "Keep a steady commit cadence while applying, even if it is one focused commit per day.",
+      "expected_impact": "Reduce ghosting risk tied to stale proof-of-work signals.",
+      "confidence": 0.8
+    },
+    {
+      "id": "insight_004",
+      "title": "Follow-up window",
+      "severity": "medium",
+      "claim": "10 applications are in the 7-14 day follow-up window.",
+      "evidence": {
+        "query_id": "q_009",
+        "rows_used": 10,
+        "sources": [
+          "notion.applications"
+        ],
+        "supporting_numbers": {
+          "hot_followups": 10,
+          "total_followups": 12
+        }
+      },
+      "root_cause": "Pending applications are aging without a second touch.",
+      "recommended_action": "Send follow-up emails to the hot queue today.",
+      "expected_impact": "Capture the strongest follow-up timing window before applications go cold.",
+      "confidence": 0.78
+    }
+  ],
+  "llm_insights": null
+}
