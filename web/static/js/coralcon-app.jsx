@@ -3,10 +3,10 @@
 const { useState: useAppState, useEffect: useAppEffect, useCallback: useAppCb } = React;
 
 const TABS = [
-  { id: 'dashboard', label: 'Dashboard', icon: 'layoutDashboard', badge: '6' },
-  { id: 'proof', label: 'Coral Proof', icon: 'database', badge: '9' },
-  { id: 'cohort', label: 'Crew Analysis', icon: 'users' },
-  { id: 'privacy', label: 'Privacy Vault', icon: 'shield' },
+  { id: 'dashboard', label: 'My Report', icon: 'layoutDashboard' },
+  { id: 'proof', label: 'How It Works', icon: 'database' },
+  { id: 'cohort', label: 'Teams', icon: 'users' },
+  { id: 'privacy', label: 'Privacy', icon: 'shield' },
 ];
 
 const TAB_PATHS = {
@@ -103,7 +103,7 @@ function CoralConApp() {
           </div>
           <div>
             <div className="cc-logo-text">CoralCon</div>
-            <div className="cc-logo-sub">Career Intelligence</div>
+            <div className="cc-logo-sub">Local-First Career Intelligence</div>
           </div>
         </div>
 

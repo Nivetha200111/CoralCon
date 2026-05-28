@@ -145,84 +145,96 @@
       "times_required": 34,
       "in_github": false,
       "in_linkedin": false,
-      "priority": "critical"
+      "priority": "critical",
+      "in_portfolio": false
     },
     {
       "skill": "React",
       "times_required": 38,
       "in_github": false,
       "in_linkedin": true,
-      "priority": "critical"
+      "priority": "critical",
+      "in_portfolio": false
     },
     {
       "skill": "Docker",
       "times_required": 28,
       "in_github": true,
       "in_linkedin": false,
-      "priority": "high"
+      "priority": "high",
+      "in_portfolio": false
     },
     {
       "skill": "Kubernetes",
       "times_required": 22,
       "in_github": false,
       "in_linkedin": false,
-      "priority": "critical"
+      "priority": "critical",
+      "in_portfolio": false
     },
     {
       "skill": "CI/CD",
       "times_required": 19,
       "in_github": false,
       "in_linkedin": false,
-      "priority": "high"
+      "priority": "high",
+      "in_portfolio": false
     },
     {
       "skill": "System Design",
       "times_required": 17,
       "in_github": false,
       "in_linkedin": false,
-      "priority": "high"
+      "priority": "high",
+      "in_portfolio": false
     },
     {
       "skill": "AWS",
       "times_required": 24,
       "in_github": false,
       "in_linkedin": true,
-      "priority": "high"
+      "priority": "high",
+      "in_portfolio": false
     },
     {
       "skill": "PostgreSQL",
       "times_required": 15,
       "in_github": true,
       "in_linkedin": true,
-      "priority": "medium"
+      "priority": "medium",
+      "in_portfolio": false
     },
     {
       "skill": "GraphQL",
       "times_required": 11,
       "in_github": false,
       "in_linkedin": false,
-      "priority": "medium"
+      "priority": "medium",
+      "in_portfolio": false
     },
     {
       "skill": "Redis",
       "times_required": 9,
       "in_github": false,
       "in_linkedin": false,
-      "priority": "medium"
+      "priority": "medium",
+      "in_portfolio": false
     },
     {
       "skill": "Terraform",
       "times_required": 8,
       "in_github": false,
       "in_linkedin": false,
-      "priority": "medium"
+      "priority": "medium",
+      "in_portfolio": false
     },
     {
       "skill": "Next.js",
       "times_required": 21,
       "in_github": false,
       "in_linkedin": false,
-      "priority": "critical"
+      "priority": "critical",
+      "in_portfolio": false
     }
   ],
   "github_correlation": {
@@ -331,10 +343,25 @@
   ],
   "action_items": [
     "Stop applying to React Frontend Engineer roles until you fix your profile. 82% rejection rate.",
-    "Build 1 project using TypeScript this week. Missing from 34 rejected applications.",
+    "Build and publish 1 portfolio project using TypeScript this week. Missing from 34 rejected applications.",
+    "Add PORTFOLIO_URL or pass --portfolio-url so CoralCon can inspect public proof-of-work.",
     "Commit to GitHub daily during job search. Your ghost rate drops 70% in active commit weeks.",
     "Send follow-up emails to your 12 pending applications. Day 10 follow-ups have 22% response rate."
   ],
+  "portfolio": {
+    "url": null,
+    "configured": false,
+    "reachable": false,
+    "status_code": null,
+    "title": "",
+    "description": "",
+    "detected_skills": [],
+    "project_links": [],
+    "github_links": [],
+    "external_links": [],
+    "text_sample": "",
+    "error": "Set PORTFOLIO_URL or pass --portfolio-url."
+  },
   "overall_health_score": 25,
   "evidence_insights": [
     {
@@ -376,7 +403,8 @@
         "supporting_numbers": {
           "times_required": 38,
           "in_github": false,
-          "in_linkedin": true
+          "in_linkedin": true,
+          "in_portfolio": false
         }
       },
       "root_cause": "The job descriptions ask for the skill, but the public evidence is weak or absent.",

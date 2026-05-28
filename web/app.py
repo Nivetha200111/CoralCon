@@ -148,7 +148,14 @@ async def api_actions():
 
 @app.get("/api/proof")
 async def api_proof():
-    return proof_summary()
+    ps = proof_summary()
+    if not ps["queries"]:
+        from coralcon.orchestrator import CoralConOrchestrator
+        await run_in_threadpool(
+            lambda: CoralConOrchestrator().run_full_analysis(use_ai=False, dry_run=True)
+        )
+        ps = proof_summary()
+    return ps
 
 
 @app.get("/api/cohort")
@@ -276,22 +283,27 @@ def _map_insights(
     insights = []
     if patterns:
         worst = max(patterns, key=lambda row: row.get("rejection_rate", 0))
+        role = worst.get("role_title", "Role")
+        rate = worst.get("rejection_rate", 0)
+        total = worst.get("total", 0)
         insights.append(
             {
                 "id": "rejection-pattern",
-                "title": f"{worst.get('role_title', 'Role')} rejection pattern",
-                "severity": "critical" if worst.get("rejection_rate", 0) >= 80 else "high",
-                "claim": f"{worst.get('role_title', 'This role')} has a {worst.get('rejection_rate', 0):.0f}% rejection rate across {worst.get('total', 0)} applications.",
-                "rootCause": "Current public evidence is not matching this role category strongly enough.",
-                "action": actions[0] if actions else "Tighten role targeting before increasing application volume.",
-                "impact": "Improves fit before adding more applications to a weak bucket.",
-                "evidence": {"queryId": "rejection_patterns", "rows": worst.get("total", 0), "sources": ["notion.applications"]},
+                "title": f"Stop applying to {role} roles" if rate >= 70 else f"{role} roles are a weak spot",
+                "severity": "critical" if rate >= 80 else "high",
+                "claim": f"{role} roles have a {rate:.0f}% rejection rate across {total} applications. That's your worst category.",
+                "rootCause": f"Your public profile doesn't match what {role} roles are looking for. Recruiters see the mismatch immediately.",
+                "action": actions[0] if actions else "Fix your profile for this role type or stop applying until you do.",
+                "impact": f"Either fix the gap or redirect those {total} applications to roles where your profile is stronger.",
+                "evidence": {"queryId": "rejection_patterns", "rows": total, "sources": ["notion.applications"]},
                 "confidence": 0.82,
             }
         )
 
     if gaps:
         top_gap = max(gaps, key=lambda row: row.get("times_required", 0))
+        skill = top_gap.get("skill", "Skill")
+        count = top_gap.get("times_required", 0)
         missing_sources = [
             label
             for label, present in (
@@ -304,13 +316,13 @@ def _map_insights(
         insights.append(
             {
                 "id": "skill-gap",
-                "title": f"{top_gap.get('skill', 'Skill')} evidence gap",
+                "title": f"Jobs want {skill}, your profile doesn't show it",
                 "severity": "high" if top_gap.get("priority") in {"critical", "high"} else "medium",
-                "claim": f"{top_gap.get('skill', 'This skill')} appears in {top_gap.get('times_required', 0)} target roles and is missing from {', '.join(missing_sources) or 'no major source'}.",
-                "rootCause": "Recruiter-visible proof does not line up with the skill demand in applications.",
-                "action": next((item for item in actions if top_gap.get("skill", "") in item), actions[0] if actions else "Add a targeted proof-of-work project."),
-                "impact": "Raises confidence for roles that require the same skill.",
-                "evidence": {"queryId": "skill_gap_detection", "rows": top_gap.get("times_required", 0), "sources": ["notion.applications", "github.activity", "linkedin.skills", "portfolio"]},
+                "claim": f"{skill} appears in {count} target roles but is missing from {', '.join(missing_sources) or 'your profile'}.",
+                "rootCause": f"Recruiters look for {skill} on your GitHub and LinkedIn. When they don't find it, your application gets filtered out.",
+                "action": next((item for item in actions if skill in item), actions[0] if actions else f"Build a project using {skill} and add it to your profile."),
+                "impact": f"Fixing this one gap affects {count} roles you're targeting.",
+                "evidence": {"queryId": "skill_gap_detection", "rows": count, "sources": ["notion.applications", "github.activity", "linkedin.skills"]},
                 "confidence": 0.86,
             }
         )
@@ -320,27 +332,29 @@ def _map_insights(
         insights.append(
             {
                 "id": "github-activity",
-                "title": "GitHub activity signal",
+                "title": "Your GitHub goes quiet when you job search",
                 "severity": "high" if ghost_gap >= 30 else "medium",
-                "claim": f"Ghost rate is {ghost_gap:.0f} points higher in inactive GitHub weeks.",
-                "rootCause": "The public coding signal drops during parts of the application cycle.",
-                "action": next((item for item in actions if "GitHub" in item), "Keep a steady commit cadence while applying."),
-                "impact": "Keeps proof-of-work fresh while recruiters are checking profiles.",
+                "claim": f"Ghost rate is {ghost_gap:.0f} points higher during weeks you don't commit.",
+                "rootCause": "Recruiters check your GitHub. When the contribution graph is empty, it signals disengagement.",
+                "action": next((item for item in actions if "GitHub" in item), "Commit something every day during your search, even small things."),
+                "impact": "Active GitHub weeks show significantly higher response rates.",
                 "evidence": {"queryId": "github_activity_correlation", "rows": 1, "sources": ["github.activity", "notion.applications"]},
                 "confidence": 0.78,
             }
         )
 
     if portfolio.get("configured"):
+        reachable = portfolio.get("reachable")
+        skills_found = len(portfolio.get("detected_skills", []))
         insights.append(
             {
                 "id": "portfolio-scan",
-                "title": "Portfolio scan",
-                "severity": "medium" if portfolio.get("reachable") else "critical",
-                "claim": f"Portfolio is {'reachable' if portfolio.get('reachable') else 'not reachable'} with {len(portfolio.get('detected_skills', []))} visible skills detected.",
-                "rootCause": "The portfolio is the fastest public proof surface for recruiters.",
-                "action": next((item for item in actions if "portfolio" in item.lower()), "Make top role skills and project links visible above the fold."),
-                "impact": "Improves the first proof surface recruiters inspect.",
+                "title": "Portfolio is reachable" if reachable else "Your portfolio isn't loading",
+                "severity": "medium" if reachable else "critical",
+                "claim": f"Portfolio {'shows ' + str(skills_found) + ' skills to recruiters' if reachable else 'is not reachable. Recruiters cannot see your work'}.",
+                "rootCause": "Your portfolio is the first thing many recruiters check. It needs to load and show proof immediately.",
+                "action": next((item for item in actions if "portfolio" in item.lower()), "Make your top skills and project links visible above the fold."),
+                "impact": "A working portfolio with clear proof is the fastest way to stand out.",
                 "evidence": {"queryId": "portfolio_scan", "rows": 1, "sources": [portfolio.get("url") or "portfolio"]},
                 "confidence": 0.72,
             }

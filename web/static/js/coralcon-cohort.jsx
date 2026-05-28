@@ -23,8 +23,8 @@ function CohortTab({ tweaks }) {
   return (
     <div>
       <div className="cc-page-header">
-        <h1 className="cc-page-title">Crew Analysis</h1>
-        <span className="cc-page-subtitle">Cohort intelligence for placement teams and bootcamps</span>
+        <h1 className="cc-page-title">Team Analysis</h1>
+        <span className="cc-page-subtitle">For bootcamps, colleges, and career coaches managing multiple candidates</span>
       </div>
 
       {/* Cohort Summary */}

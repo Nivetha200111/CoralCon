@@ -286,7 +286,6 @@ body {
 .cc-health-info p { color: var(--cc-text-secondary); font-size: 14px; line-height: 1.7; max-width: 500px; }
 
 /* ====== PROOF TAB ====== */
-.cc-proof-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--cc-sp-4); margin-bottom: var(--cc-sp-6); }
 .cc-query-card {
   background: var(--cc-bg-card); border: 1px solid var(--cc-border);
   border-radius: var(--cc-r-lg); padding: var(--cc-sp-5);
@@ -529,12 +528,43 @@ body {
 .cc-arch-node.coral { border-color: var(--cc-gold); color: var(--cc-gold); background: var(--cc-gold-dim); }
 .cc-arch-arrow { color: var(--cc-text-muted); font-size: 18px; }
 
+/* ====== HOW IT WORKS BANNER ====== */
+.cc-how-banner {
+  background: var(--cc-bg-card);
+  border: 1px solid var(--cc-border);
+  border-radius: var(--cc-r-lg);
+  padding: var(--cc-sp-5);
+  margin-bottom: var(--cc-sp-6);
+}
+.cc-how-steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--cc-sp-4);
+}
+.cc-how-step {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--cc-sp-3);
+}
+.cc-how-step-num {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700;
+  flex-shrink: 0;
+}
+
+/* ====== PROOF STATS GRID (4-col) ====== */
+.cc-proof-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--cc-sp-4); margin-bottom: var(--cc-sp-6); }
+
 /* ====== RESPONSIVE ====== */
 @media (max-width: 900px) {
   .cc-sidebar { display: none; }
   .cc-stats-grid { grid-template-columns: repeat(2, 1fr); }
   .cc-charts-grid { grid-template-columns: 1fr; }
   .cc-main { padding: var(--cc-sp-5); }
+  .cc-how-steps { grid-template-columns: 1fr; }
+  .cc-proof-stats { grid-template-columns: repeat(2, 1fr); }
 }
 
 /* ====== PRODUCT SCANNER EXTENSIONS ====== */

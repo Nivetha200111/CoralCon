@@ -15,8 +15,8 @@ function PrivacyTab({ tweaks }) {
   return (
     <div>
       <div className="cc-page-header">
-        <h1 className="cc-page-title">Privacy Vault</h1>
-        <span className="cc-page-subtitle">Local-first architecture. Your data stays yours.</span>
+        <h1 className="cc-page-title">Privacy</h1>
+        <span className="cc-page-subtitle">Your data stays on your machine. Nothing is uploaded.</span>
       </div>
 
       {/* Privacy Checks */}

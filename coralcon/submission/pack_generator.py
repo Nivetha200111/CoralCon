@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 from coralcon.privacy.report import build_privacy_report
-from coralcon.proof.report import build_proof_report
+from coralcon.proof.report import build_proof_report, proof_summary
 
 
 SUBMISSION_DIR = Path("submission")
@@ -31,75 +31,207 @@ def generate_submission_pack() -> list[Path]:
 
 
 def _readme_submission() -> str:
-    return """# CoralCon
+    ps = proof_summary()
+    return f"""# CoralCon — Pirates of the Coral-bean Submission
 
-CoralCon is a local-first career intelligence agent that turns rejection history into an evidence-backed improvement plan by joining GitHub proof-of-work, Notion application outcomes, and LinkedIn profile signals through Coral SQL.
+> Other agents tell you what to do. CoralCon proves why you're failing,
+> with evidence from the data you already have.
 
-## Problem
-Job seekers apply to hundreds of roles with almost no feedback loop.
+## What It Is
 
-## Solution
-CoralCon connects application outcomes, portfolio evidence, and profile signals, then generates grounded insights and action tasks.
+CoralCon is a local-first career intelligence agent that turns rejection history
+into an evidence-backed improvement plan by joining GitHub proof-of-work, Notion
+application outcomes, and LinkedIn profile signals through Coral SQL.
 
 ## Why Coral Is Essential
-Without Coral, CoralCon would need separate GitHub, Notion, and LinkedIn integrations plus custom pagination, auth, schema mapping, and correlation logic. With Coral, the agent asks one SQL question across all sources.
+
+Coral SQL is the central data layer. Every piece of career intelligence flows through it.
+
+Without Coral, CoralCon would need three separate API integrations (GitHub, Notion,
+LinkedIn GDPR), each with custom auth, pagination, schema mapping, and correlation
+logic. With Coral, the agent asks one SQL question across all sources.
+
+Cross-source JOINs are what make the insights possible. Joining `notion.applications`
+with `github.activity` proves whether commit cadence correlates with response rate.
+Joining with `linkedin.skills` proves whether profile signals match role requirements.
+
+## Coral Proof
+
+- Total queries: {ps['total_queries']}
+- Cross-source JOINs: {ps['cross_source_queries']}
+- Sources: {', '.join(ps['sources'])}
+- Mode: {ps['mode']}
 
 ## Demo Commands
-- `coralcon judge-demo --sample`
-- `coralcon proof`
-- `coralcon privacy-report`
-- `coralcon benchmark-cache --sample`
-- `coralcon submit-pack`
-- `coralcon serve`
+
+```bash
+pip install -r requirements.txt
+python -m coralcon.cli judge-demo --sample   # Full pipeline with sample data
+python -m coralcon.cli proof                  # Coral query audit trail
+python -m coralcon.cli serve                  # Web dashboard at :8000
+python -m coralcon.cli submit-pack            # Generate these files
+```
+
+## Architecture
+
+CLI/Web -> Orchestrator -> Recon Agent -> Coral SQL -> GitHub + Notion + LinkedIn
+                       -> Analyst Agent (evidence-backed insights)
+                       -> Dashboard Agent (Notion writes)
+                       -> Action Agent (prioritized tasks)
+
+## Privacy
+
+Local-first. Raw data stays on your machine. Coral queries execute locally.
+LLM analysis (optional) sends only summarized results.
 """
 
 
 def _demo_script() -> str:
-    return """# 3-Minute Demo Script
+    return """# CoralCon — 3-Minute Demo Script
 
-## 0:00-0:30 Hook
-I applied to hundreds of jobs and got almost no feedback. CoralCon turns rejection history into a dataset.
+## 0:00-0:20 — Hook
 
-## 0:30-1:00 Coral Source Proof
-Show `coralcon proof` and the logged GitHub, Notion, and LinkedIn SQL sources.
+"I got rejected again and again, but I had no feedback. So I built CoralCon
+to turn rejection history into data."
 
-## 1:00-1:30 Cross-Source SQL Demo
-Run `coralcon judge-demo --sample` and point out the cross-source join evidence.
+Show the problem: hundreds of applications, no signal about what's failing.
 
-## 1:30-2:00 Insight and Action Generation
-Show evidence-backed insights and generated Notion-ready action tasks.
+## 0:20-0:50 — Show Coral
 
-## 2:00-2:30 Dashboard
-Run `coralcon serve` and show the local dashboard.
+"Coral lets me query GitHub, Notion, and LinkedIn as SQL sources."
 
-## 2:30-3:00 Close
-CoralCon turns job rejection into an evidence-backed improvement plan.
+Run `python -m coralcon.cli status` to show connected sources.
+Run `python -m coralcon.cli proof` to show the query audit trail.
+
+Point out: all data retrieval goes through Coral SQL. No direct API calls.
+
+## 0:50-1:30 — Show Cross-Source Query
+
+"This is the key query — application outcomes from Notion joined with GitHub
+activity and LinkedIn skills."
+
+Show the cross-source JOIN in the proof report or web dashboard Coral Proof tab.
+
+```sql
+SELECT n.role_title, n.status, g.commits_count, l.skills
+FROM notion.applications n
+JOIN github.activity g ON g.week = date_trunc('week', n.applied_date)
+JOIN linkedin.skills l
+```
+
+Point out: this JOIN is why Coral matters. Three sources, one query.
+
+## 1:30-2:10 — Show Evidence-Backed Insights
+
+"The app does not just say 'improve your profile.' It shows exactly what
+evidence caused the recommendation."
+
+Run `python -m coralcon.cli judge-demo --sample` and show:
+- Each insight has a query ID, source tables, row count
+- Supporting numbers come from actual query results
+- Confidence scores based on evidence strength
+- No hallucinated data
+
+Show the web dashboard insights panel (expand one card to show evidence).
+
+## 2:10-2:40 — Show Action Plan
+
+"Every recommendation is backed by evidence and prioritized by impact."
+
+Show the action items from the demo output.
+Show the portfolio inspector on the dashboard.
+Mention cohort mode for placement teams.
+
+## 2:40-3:00 — Close
+
+"Other agents tell you what to do. CoralCon proves why you're failing,
+with evidence from the data you already have."
+
+Show the evidence pack: `submission/coralcon_evidence_pack.md`
 """
 
 
 def _architecture() -> str:
-    return """# Architecture
+    return """# CoralCon Architecture
 
-User -> CoralCon CLI/Web -> Recon Agent -> Coral SQL -> GitHub + Notion + LinkedIn
+## Pipeline
 
-Recon passes raw query outputs to the Analyst Agent. The Analyst Agent creates evidence-backed insights. Dashboard and Action agents write optional Notion outputs. Sample mode uses seeded local data and deterministic rules.
+```
+User -> CLI / Web Dashboard
+     -> CoralCon Orchestrator
+        -> Recon Agent
+           -> Coral SQL Layer
+              -> GitHub (repos, events, profile)
+              -> Notion (applications, status, skills)
+              -> LinkedIn (GDPR export: skills, positions, headline)
+        -> Analyst Agent
+           -> Deterministic rule-based insights
+           -> Optional Claude API narrative analysis
+        -> Dashboard Agent
+           -> Notion dashboard writes (optional)
+        -> Action Agent
+           -> Prioritized Notion tasks (optional)
+```
+
+## Data Flow
+
+1. **Recon Agent** executes Coral SQL queries to collect raw data from all sources.
+   Every query is logged with source tables, row count, execution time, and cache status.
+
+2. **Analyst Agent** processes the raw data through deterministic rules to generate
+   evidence-backed insights. Each insight includes the query ID, supporting numbers,
+   and confidence score. Optionally, Claude API adds narrative analysis.
+
+3. **Dashboard Agent** writes structured results to a Notion page (when configured).
+
+4. **Action Agent** creates prioritized tasks in a Notion database (when configured).
+
+## Key Design Decisions
+
+- **Coral SQL is the only data access path.** The agent never calls GitHub, Notion,
+  or LinkedIn APIs directly. This ensures all data retrieval is logged and auditable.
+
+- **Deterministic first, LLM second.** All core insights use rule-based analysis.
+  Claude API narrative is optional and never generates numbers — those come from queries.
+
+- **Evidence-backed insights.** Every claim includes the query ID, source tables,
+  row count, and supporting numbers. No insight without evidence.
+
+- **Sample fallback.** Deterministic sample mode uses seeded JSON data for reproducible
+  judging. Same pipeline, same output format, no credentials needed.
+
+- **Local-first privacy.** Raw data stays on the machine. LLM analysis sends only
+  summarized results.
 """
 
 
 def _sample_output() -> str:
     insights_path = Path("runs") / "latest" / "insights.json"
     if not insights_path.exists():
-        return "# Sample Output\n\nRun `coralcon judge-demo --sample` to generate sample output."
+        return "# Sample Output\n\nRun `python -m coralcon.cli judge-demo --sample` to generate sample output."
     data = json.loads(insights_path.read_text(encoding="utf-8"))
+
     lines = [
-        "# Sample Output",
+        "# CoralCon Sample Output",
         "",
-        f"Applications: {data.get('total_applications', 0)}",
-        f"Response rate: {data.get('response_rate', 0)}%",
-        f"Health score: {data.get('overall_health_score', 0)}/100",
+        f"- Applications analyzed: {data.get('total_applications', 0)}",
+        f"- Response rate: {data.get('response_rate', 0)}%",
+        f"- Health score: {data.get('overall_health_score', 0)}/100",
+        f"- Offer rate: {data.get('offer_rate', 0)}%",
         "",
-        "## Insights",
+        "## Evidence-Backed Insights",
+        "",
     ]
     for insight in data.get("evidence_insights", []):
-        lines.append(f"- {insight['claim']} Action: {insight['recommended_action']}")
+        evidence = insight.get("evidence", {})
+        lines.extend([
+            f"### {insight['title']}",
+            f"- **Claim:** {insight['claim']}",
+            f"- **Severity:** {insight['severity']}",
+            f"- **Confidence:** {insight.get('confidence', 0):.0%}",
+            f"- **Query:** {evidence.get('query_id', 'unknown')}",
+            f"- **Sources:** {', '.join(evidence.get('sources', []))}",
+            f"- **Action:** {insight['recommended_action']}",
+            "",
+        ])
     return "\n".join(lines)
