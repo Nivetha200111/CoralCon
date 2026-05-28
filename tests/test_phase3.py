@@ -3,6 +3,7 @@ import os
 from coralcon.agents.analyst import AnalystAgent
 from coralcon.agents.recon import ReconAgent
 from coralcon.demo.judge_demo import run_judge_demo
+from coralcon.portfolio.inspector import _detect_skills
 from coralcon.proof.query_logger import get_query_log, reset_query_log
 from coralcon.submission.pack_generator import generate_submission_pack
 
@@ -36,3 +37,15 @@ def test_submit_pack_generation():
     names = {path.name for path in paths}
     assert "README_SUBMISSION.md" in names
     assert "CORAL_PROOF.md" in names
+
+
+def test_portfolio_skill_detection_is_deterministic():
+    text = "Production React and TypeScript portfolio using FastAPI, PostgreSQL, Docker, and AWS."
+    assert _detect_skills(text.lower()) == [
+        "aws",
+        "docker",
+        "fastapi",
+        "postgresql",
+        "react",
+        "typescript",
+    ]

@@ -52,6 +52,7 @@ def build_evidence_insights(analysis: dict) -> list[dict]:
                         "times_required": top_gap.get("times_required", 0),
                         "in_github": top_gap.get("in_github", False),
                         "in_linkedin": top_gap.get("in_linkedin", False),
+                        "in_portfolio": top_gap.get("in_portfolio", False),
                     },
                 ),
                 root_cause="The job descriptions ask for the skill, but the public evidence is weak or absent.",
@@ -106,6 +107,33 @@ def build_evidence_insights(analysis: dict) -> list[dict]:
                 recommended_action="Send follow-up emails to the hot queue today.",
                 expected_impact="Capture the strongest follow-up timing window before applications go cold.",
                 confidence=0.78,
+            )
+        )
+
+    portfolio = analysis.get("portfolio", {})
+    missing_from_portfolio = [gap for gap in gaps if not gap.get("in_portfolio")]
+    if portfolio.get("configured") and portfolio.get("reachable") and missing_from_portfolio:
+        top_missing = max(missing_from_portfolio, key=lambda row: row.get("times_required", 0))
+        insights.append(
+            EvidenceBackedInsight(
+                id="insight_005",
+                title="Portfolio evidence gap",
+                severity="medium",
+                claim=f"{top_missing.get('skill')} is required by target roles but was not detected on the portfolio page.",
+                evidence=InsightEvidence(
+                    query_id="portfolio_scan",
+                    rows_used=1,
+                    sources=[portfolio.get("url", "portfolio")],
+                    supporting_numbers={
+                        "detected_skills": len(portfolio.get("detected_skills", [])),
+                        "project_links": len(portfolio.get("project_links", [])),
+                        "github_links": len(portfolio.get("github_links", [])),
+                    },
+                ),
+                root_cause="The portfolio does not make the strongest role-matching evidence easy to find.",
+                recommended_action=f"Add a case study or project section that explicitly shows {top_missing.get('skill')}.",
+                expected_impact="Improve public proof-of-work alignment before recruiters open GitHub or LinkedIn.",
+                confidence=0.72,
             )
         )
 

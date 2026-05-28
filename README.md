@@ -32,9 +32,10 @@ CLI/Web
 ## Features
 
 - Four-agent pipeline: Recon, Analyst, Dashboard, Action.
-- Deterministic sample mode for demos without API keys.
+- Deployable FastAPI product surface with live `/api/dashboard` data and sample fallback.
 - Coral proof logging for every SQL query.
 - Evidence-backed insights saved to `runs/latest`.
+- Public portfolio inspection from the dashboard or CLI.
 - Optional Notion dashboard and action task writes.
 - Cache benchmark and privacy report.
 - Submission pack generator for hackathon materials.
@@ -63,6 +64,7 @@ WHERE n.status = 'rejected'
 coralcon analyze --no-ai --dry-run
 coralcon recon
 coralcon insights --no-ai
+coralcon portfolio-check https://your-portfolio.com
 coralcon dashboard --sample
 coralcon actions --no-ai --dry-run
 coralcon judge-demo --sample
@@ -91,6 +93,47 @@ On this Windows workspace, the Codex bundled Python path is:
 
 Sample mode uses seeded local JSON data under `data/sample`. It requires no Coral, Notion, LinkedIn, or LLM credentials.
 
+## Web Product
+
+Run the product locally:
+
+```bash
+uvicorn web.app:app --host 127.0.0.1 --port 8000
+```
+
+Open `http://127.0.0.1:8000`. The dashboard calls `/api/dashboard` for live analysis. If real sources are not configured, it stays usable with sample fallback and clearly marks the data state in the UI.
+
+Useful web endpoints:
+
+```text
+GET /healthz
+GET /api/status
+GET /api/dashboard
+GET /api/portfolio?url=https://your-portfolio.com
+```
+
+## Deploy
+
+The repo includes `Dockerfile`, `Procfile`, and `render.yaml`.
+
+Render:
+
+```bash
+git push origin main
+# Create a Render Blueprint from render.yaml, or create a Web Service:
+# build: pip install -r requirements.txt && pip install -e .
+# start: uvicorn web.app:app --host 0.0.0.0 --port $PORT
+```
+
+Docker:
+
+```bash
+docker build -t coralcon .
+docker run --env-file .env -p 8000:8000 coralcon
+```
+
+For a public deployment without per-user auth, keep `CORAL_AVAILABLE=false`; users can still inspect portfolios and view sample-backed product behavior. For a private deployment connected to your sources, set `CORAL_AVAILABLE=true` and configure Coral on the host.
+
 ## Real Mode
 
 Set these values in `.env`:
@@ -98,12 +141,33 @@ Set these values in `.env`:
 ```env
 CORAL_AVAILABLE=true
 ANTHROPIC_API_KEY=...
+GITHUB_TOKEN=...
+NOTION_API_KEY=...
 NOTION_TOKEN=...
 NOTION_DASHBOARD_PAGE_ID=...
 NOTION_ACTIONS_DATABASE_ID=...
+PORTFOLIO_URL=https://your-portfolio.com
 ```
 
-Reads should go through Coral SQL. Notion is used only for optional dashboard/task writes.
+Reads go through Coral SQL. `GITHUB_TOKEN` and `NOTION_API_KEY` are used when you install the Coral sources. `NOTION_TOKEN`, `NOTION_DASHBOARD_PAGE_ID`, and `NOTION_ACTIONS_DATABASE_ID` are only for optional dashboard/task writes from CoralCon.
+
+Install and connect Coral:
+
+```bash
+brew install withcoral/tap/coral
+coral source add --interactive github
+coral source add --interactive notion
+coral source add --file ./coral/sources/linkedin/source.yaml
+coral source list
+coral sql --format json "SELECT * FROM github.repos LIMIT 5"
+```
+
+Then run:
+
+```bash
+CORAL_AVAILABLE=true coralcon status
+CORAL_AVAILABLE=true coralcon recon
+```
 
 ## Custom LinkedIn Source
 

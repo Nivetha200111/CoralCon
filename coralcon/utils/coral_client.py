@@ -10,6 +10,7 @@ import json
 import subprocess
 import time
 from pathlib import Path
+from datetime import date
 
 from coralcon.proof.query_logger import log_query
 
@@ -32,7 +33,7 @@ def run_query(sql: str) -> list[dict]:
         return rows
 
     if _coral_available():
-        rows = _run_coral_query(sql)
+        rows = _run_real_query(sql)
     else:
         rows = _run_sample_query(sql)
 
@@ -43,15 +44,22 @@ def run_query(sql: str) -> list[dict]:
     return rows
 
 
+def _run_real_query(sql: str) -> list[dict]:
+    """Execute real-mode queries, adapting simple Notion tables when needed."""
+    sql_lower = sql.lower()
+    if "notion.applications" in sql_lower:
+        return _run_notion_applications_query(sql)
+    if "from github.activity" in sql_lower and (
+        "commits_count" in sql_lower or "active_repos" in sql_lower or "week" in sql_lower
+    ):
+        return _fetch_github_activity_summary()
+    return _run_coral_query(sql)
+
+
 def _run_coral_query(sql: str) -> list[dict]:
     """Execute a real Coral SQL query via CLI."""
     try:
-        result = subprocess.run(
-            ["coral", "query", "--format", "json", sql],
-            capture_output=True,
-            text=True,
-            timeout=30,
-        )
+        result = _run_coral_sql_command(sql)
         if result.returncode != 0:
             raise RuntimeError(f"Coral error: {result.stderr}")
         return json.loads(result.stdout)
@@ -61,6 +69,338 @@ def _run_coral_query(sql: str) -> list[dict]:
         )
     except subprocess.TimeoutExpired:
         raise RuntimeError("Coral query timed out after 30s")
+
+
+def _run_notion_applications_query(sql: str) -> list[dict]:
+    """Read the configured simple Notion table block as application rows."""
+    apps = _fetch_notion_applications_table()
+    sql_lower = sql.lower()
+
+    if "github.activity" in sql_lower:
+        github_rows = _fetch_github_activity_summary()
+        return _github_correlation_from_apps(apps, github_rows)
+
+    if "required_skills" in sql_lower and "linkedin" in sql_lower:
+        linkedin_rows = _run_coral_query(
+            "SELECT name, endorsements FROM linkedin.skills ORDER BY endorsements DESC"
+        )
+        github_rows = _fetch_github_activity_summary()
+        return _skill_gaps_from_apps(apps, linkedin_rows, github_rows)
+
+    if "days_waiting" in sql_lower or "follow-up" in sql_lower or "followup" in sql_lower:
+        return _followups_from_apps(apps)
+
+    if "timing_bucket" in sql_lower or "days_to_apply" in sql_lower:
+        return _timing_from_apps(apps)
+
+    if "group by" in sql_lower and "role_title" in sql_lower:
+        return _rejection_patterns_from_apps(apps)
+
+    return apps
+
+
+def _run_coral_sql_command(sql: str) -> subprocess.CompletedProcess[str]:
+    """Run Coral SQL using the current CLI, with legacy command fallback."""
+    try:
+        result = subprocess.run(
+            ["coral", "sql", "--format", "json", sql],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+    except FileNotFoundError:
+        raise
+
+    if result.returncode == 0:
+        return result
+
+    legacy = subprocess.run(
+        ["coral", "query", "--format", "json", sql],
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    return legacy if legacy.returncode == 0 else result
+
+
+def _fetch_notion_applications_table() -> list[dict]:
+    """Fetch rows from a Notion simple table block through Coral."""
+    block_id = os.getenv("NOTION_APPLICATIONS_TABLE_BLOCK_ID")
+    if not block_id:
+        block_id = _discover_notion_applications_table_block()
+    if not block_id:
+        raise RuntimeError(
+            "Missing NOTION_APPLICATIONS_TABLE_BLOCK_ID. Share the Job Applications "
+            "page with the Notion integration, then set the table block ID."
+        )
+
+    rows = _run_coral_query(
+        "SELECT id, raw FROM notion.block_children "
+        f"WHERE block_id = '{block_id}' LIMIT 500"
+    )
+    parsed = [_parse_notion_table_row(row.get("raw", "")) for row in rows]
+    parsed = [row for row in parsed if row]
+    if not parsed:
+        return []
+
+    headers = [_normalize_header(cell) for cell in parsed[0]]
+    applications = []
+    for index, cells in enumerate(parsed[1:], start=1):
+        values = {headers[i]: cells[i] if i < len(cells) else "" for i in range(len(headers))}
+        if not any(values.values()):
+            continue
+        skills = [
+            skill.strip()
+            for skill in values.get("required_skills", "").replace(";", ",").split(",")
+            if skill.strip()
+        ]
+        applications.append(
+            {
+                "id": f"notion_row_{index:03d}",
+                "company": values.get("company", ""),
+                "role_title": values.get("role_title", ""),
+                "applied_date": values.get("applied_date", ""),
+                "status": _normalize_status(values.get("status", "")),
+                "required_skills": skills,
+                "salary_range": values.get("salary_range", ""),
+                "source": values.get("source", "Notion"),
+            }
+        )
+    return applications
+
+
+def _discover_notion_applications_table_block() -> str | None:
+    page_id = os.getenv("NOTION_APPLICATIONS_PAGE_ID")
+    if not page_id:
+        return None
+    rows = _run_coral_query(
+        "SELECT id, type FROM notion.block_children "
+        f"WHERE block_id = '{page_id}' LIMIT 100"
+    )
+    for row in rows:
+        if row.get("type") == "table":
+            return row.get("id")
+    return None
+
+
+def _parse_notion_table_row(raw: str) -> list[str]:
+    if not raw:
+        return []
+    block = json.loads(raw)
+    cells = block.get("table_row", {}).get("cells", [])
+    values = []
+    for cell in cells:
+        values.append("".join(part.get("plain_text", "") for part in cell).strip())
+    return values
+
+
+def _normalize_header(value: str) -> str:
+    return value.strip().lower().replace(" ", "_").replace("-", "_")
+
+
+def _normalize_status(value: str) -> str:
+    status = value.strip().lower().replace(" ", "_")
+    aliases = {
+        "wishlist": "applied",
+        "wish_list": "applied",
+        "to_apply": "applied",
+        "not_applied": "applied",
+        "interview": "interviewing",
+        "interviewed": "interviewing",
+        "accepted": "offer",
+        "offered": "offer",
+    }
+    return aliases.get(status, status or "applied")
+
+
+def _rejection_patterns_from_apps(apps: list[dict]) -> list[dict]:
+    by_role: dict[str, dict] = {}
+    for app in apps:
+        role = app.get("role_title") or "Unknown"
+        row = by_role.setdefault(
+            role,
+            {
+                "role_title": role,
+                "total": 0,
+                "rejected": 0,
+                "ghosted": 0,
+                "interviewed": 0,
+                "offers": 0,
+            },
+        )
+        row["total"] += 1
+        status = app.get("status")
+        if status == "rejected":
+            row["rejected"] += 1
+        elif status == "ghosted":
+            row["ghosted"] += 1
+        elif status == "interviewing":
+            row["interviewed"] += 1
+        elif status == "offer":
+            row["offers"] += 1
+
+    rows = []
+    for row in by_role.values():
+        total = row["total"] or 1
+        row["rejection_rate"] = round(row["rejected"] * 100.0 / total, 1)
+        row["ghost_rate"] = round(row["ghosted"] * 100.0 / total, 1)
+        row["response_rate"] = round((row["interviewed"] + row["offers"]) * 100.0 / total, 1)
+        rows.append(row)
+    return sorted(rows, key=lambda r: r["rejection_rate"], reverse=True)
+
+
+def _skill_gaps_from_apps(apps: list[dict], linkedin_rows: list[dict], github_rows: list[dict]) -> list[dict]:
+    counts: dict[str, int] = {}
+    for app in apps:
+        if app.get("status") not in {"rejected", "ghosted", "applied"}:
+            continue
+        for skill in app.get("required_skills", []):
+            counts[skill] = counts.get(skill, 0) + 1
+
+    linkedin_skills = {str(row.get("name", "")).lower() for row in linkedin_rows}
+    github_languages = set()
+    for row in github_rows:
+        languages = row.get("languages", [])
+        if isinstance(languages, str):
+            try:
+                languages = json.loads(languages)
+            except json.JSONDecodeError:
+                languages = [languages]
+        github_languages.update(str(lang).lower() for lang in languages)
+
+    rows = []
+    for skill, count in sorted(counts.items(), key=lambda item: item[1], reverse=True):
+        in_github = skill.lower() in github_languages
+        in_linkedin = skill.lower() in linkedin_skills
+        if count >= 3 and not (in_github or in_linkedin):
+            priority = "critical"
+        elif count >= 2:
+            priority = "high"
+        else:
+            priority = "medium"
+        rows.append(
+            {
+                "skill": skill,
+                "times_required": count,
+                "in_github": in_github,
+                "in_linkedin": in_linkedin,
+                "priority": priority,
+            }
+        )
+    return rows[:15]
+
+
+def _github_correlation_from_apps(apps: list[dict], github_rows: list[dict]) -> list[dict]:
+    fallback = github_rows[0] if github_rows else {}
+    rows = []
+    for app in apps:
+        rows.append(
+            {
+                "company": app.get("company", ""),
+                "applied_date": app.get("applied_date", ""),
+                "status": app.get("status", ""),
+                "role_title": app.get("role_title", ""),
+                "commits_count": fallback.get("commits_count", 0),
+                "active_repos": fallback.get("active_repos", 0),
+                "languages": fallback.get("languages", []),
+            }
+        )
+    return rows
+
+
+def _fetch_github_activity_summary() -> list[dict]:
+    """Aggregate GitHub public events into CoralCon's weekly activity shape."""
+    username = os.getenv("GITHUB_USERNAME") or _fetch_github_username()
+    if not username:
+        return []
+
+    events = _run_coral_query(
+        "SELECT created_at, type, repo__name "
+        "FROM github.user_event_public "
+        f"WHERE username = '{username}' LIMIT 100"
+    )
+    by_week: dict[str, dict] = {}
+    for event in events:
+        created = str(event.get("created_at") or "")[:10]
+        try:
+            event_date = date.fromisoformat(created)
+        except ValueError:
+            continue
+        week_start = event_date.fromordinal(event_date.toordinal() - event_date.weekday()).isoformat()
+        row = by_week.setdefault(
+            week_start,
+            {
+                "week": week_start,
+                "commits_count": 0,
+                "active_repos": 0,
+                "languages": [],
+                "stars_earned": 0,
+                "_repos": set(),
+            },
+        )
+        row["commits_count"] += 1 if event.get("type") == "PushEvent" else 0
+        if event.get("repo__name"):
+            row["_repos"].add(event["repo__name"])
+
+    rows = []
+    for row in by_week.values():
+        row["active_repos"] = len(row.pop("_repos"))
+        rows.append(row)
+    return sorted(rows, key=lambda row: row["week"], reverse=True)
+
+
+def _fetch_github_username() -> str | None:
+    rows = _run_coral_query("SELECT login FROM github.user LIMIT 1")
+    if not rows:
+        return None
+    return rows[0].get("login")
+
+
+def _timing_from_apps(apps: list[dict]) -> list[dict]:
+    total = len(apps)
+    if not total:
+        return []
+    responses = sum(1 for app in apps if app.get("status") in {"interviewing", "offer"})
+    ghosted = sum(1 for app in apps if app.get("status") == "ghosted")
+    return [
+        {
+            "timing_bucket": "unknown",
+            "total": total,
+            "response_rate": round(responses * 100.0 / total, 1),
+            "ghost_rate": round(ghosted * 100.0 / total, 1),
+        }
+    ]
+
+
+def _followups_from_apps(apps: list[dict]) -> list[dict]:
+    today = date.today()
+    rows = []
+    for app in apps:
+        if app.get("status") != "applied" or not app.get("applied_date"):
+            continue
+        try:
+            applied = date.fromisoformat(app["applied_date"])
+        except ValueError:
+            continue
+        days = (today - applied).days
+        if days < 7:
+            continue
+        priority = "hot" if days <= 14 else "warm" if days <= 21 else "cold"
+        rows.append(
+            {
+                "company": app.get("company", ""),
+                "role_title": app.get("role_title", ""),
+                "applied_date": app.get("applied_date", ""),
+                "days_waiting": days,
+                "priority": priority,
+                "recommended_action": "Send follow-up email now"
+                if priority == "hot"
+                else "Last chance follow-up"
+                if priority == "warm"
+                else "Move on - mark as ghosted",
+            }
+        )
+    return sorted(rows, key=lambda row: row["days_waiting"])
 
 
 def _run_sample_query(sql: str) -> list[dict]:
@@ -115,21 +455,62 @@ def check_coral_connection() -> dict:
     if not _coral_available():
         return status
 
+    sources = _installed_coral_sources()
+    if sources is None:
+        return status
+
+    status["coral_installed"] = True
+    status["github_connected"] = "github" in sources
+    status["notion_connected"] = "notion" in sources
+    status["linkedin_connected"] = "linkedin" in sources
+
+    return status
+
+
+def _installed_coral_sources() -> set[str] | None:
+    """Return installed Coral source names, or None when Coral is unavailable."""
     try:
         result = subprocess.run(
-            ["coral", "status", "--format", "json"],
+            ["coral", "source", "list", "--format", "json"],
             capture_output=True,
             text=True,
             timeout=10,
         )
-        if result.returncode == 0:
-            status["coral_installed"] = True
-            info = json.loads(result.stdout)
-            sources = [s.get("name", "") for s in info.get("sources", [])]
-            status["github_connected"] = "github" in sources
-            status["notion_connected"] = "notion" in sources
-            status["linkedin_connected"] = "linkedin" in sources
-    except (FileNotFoundError, subprocess.TimeoutExpired, json.JSONDecodeError):
-        pass
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return None
 
-    return status
+    if result.returncode == 0:
+        try:
+            parsed = json.loads(result.stdout)
+            if isinstance(parsed, list):
+                return {
+                    str(item.get("name", item)).strip()
+                    for item in parsed
+                    if str(item.get("name", item)).strip()
+                }
+            if isinstance(parsed, dict):
+                rows = parsed.get("sources", [])
+                return {
+                    str(item.get("name", item)).strip()
+                    for item in rows
+                    if str(item.get("name", item)).strip()
+                }
+        except json.JSONDecodeError:
+            pass
+
+    result = subprocess.run(
+        ["coral", "source", "list"],
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    if result.returncode != 0:
+        return None
+
+    known_sources = {"github", "notion", "linkedin"}
+    found = set()
+    for line in result.stdout.splitlines():
+        for source in known_sources:
+            if source in line.lower().split():
+                found.add(source)
+    return found

@@ -7,6 +7,7 @@ from coralcon.queries import (
     skill_gaps,
     timing_analysis,
 )
+from coralcon.portfolio import inspect_portfolio
 from coralcon.utils.coral_client import run_query
 
 
@@ -68,12 +69,16 @@ class ReconAgent:
         profile["skills"] = run_query(LINKEDIN_SKILLS_SQL)
         return profile
 
+    def fetch_portfolio(self, url: str | None = None) -> dict:
+        return inspect_portfolio(url)
+
     def fetch_all(self) -> dict:
         """Return a complete dataset for downstream agents."""
         return {
             "applications": self.fetch_applications(),
             "github_activity": self.fetch_github_activity(),
             "linkedin_profile": self.fetch_linkedin_profile(),
+            "portfolio": self.fetch_portfolio(),
             "rejection_patterns": rejection_patterns.fetch(),
             "github_correlation": github_correlation.fetch(),
             "skill_gaps": skill_gaps.fetch(),

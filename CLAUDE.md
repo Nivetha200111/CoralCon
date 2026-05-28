@@ -86,8 +86,8 @@ coral source add notion
 coral source add ./coral/sources/linkedin/source.yaml
 
 # Test connection
-coral query "SELECT * FROM github.repos LIMIT 5"
-coral query "SELECT * FROM notion.applications LIMIT 5"
+coral sql "SELECT * FROM github.repos LIMIT 5"
+coral sql "SELECT * FROM notion.applications LIMIT 5"
 ```
 
 ## Core Queries to Implement

@@ -79,6 +79,7 @@ def print_skill_gaps(gaps: list[dict]):
     table.add_column("REQUIRED IN", justify="right")
     table.add_column("IN GITHUB", justify="center")
     table.add_column("IN LINKEDIN", justify="center")
+    table.add_column("IN PORTFOLIO", justify="center")
     table.add_column("PRIORITY", justify="center")
 
     priority_colors = {"critical": RED, "high": AMBER, "medium": "white"}
@@ -91,9 +92,31 @@ def print_skill_gaps(gaps: list[dict]):
             f"{gap.get('times_required', 0)} rejections",
             "[green]yes[/green]" if gap.get("in_github") else "[red]no[/red]",
             "[green]yes[/green]" if gap.get("in_linkedin") else "[red]no[/red]",
+            "[green]yes[/green]" if gap.get("in_portfolio") else "[red]no[/red]",
             f"[{color}]{priority.upper()}[/{color}]",
         )
     console.print(table)
+
+
+def print_portfolio_signal(portfolio: dict):
+    console.print()
+    console.print(f"  [bold {CYAN}]PORTFOLIO SIGNAL[/bold {CYAN}]")
+    console.print(f"  [dim]{'-' * 50}[/dim]")
+    if not portfolio.get("configured"):
+        console.print("  [dim]No portfolio URL configured. Pass --portfolio-url or set PORTFOLIO_URL.[/dim]\n")
+        return
+    marker = f"[{GREEN}]reachable[/{GREEN}]" if portfolio.get("reachable") else f"[{RED}]not reachable[/{RED}]"
+    console.print(f"  URL:    [white]{portfolio.get('url') or 'N/A'}[/white]")
+    console.print(f"  Status: {marker} ({portfolio.get('status_code') or 'no status'})")
+    if portfolio.get("title"):
+        console.print(f"  Title:  [white]{portfolio.get('title')}[/white]")
+    skills = portfolio.get("detected_skills", [])
+    console.print(f"  Skills detected: [{CYAN}]{len(skills)}[/{CYAN}] {', '.join(skills[:10]) if skills else ''}")
+    console.print(f"  Project links:   [white]{len(portfolio.get('project_links', []))}[/white]")
+    console.print(f"  GitHub links:    [white]{len(portfolio.get('github_links', []))}[/white]")
+    if portfolio.get("error"):
+        console.print(f"  [dim]{portfolio.get('error')}[/dim]")
+    console.print()
 
 
 def print_followup_table(followups: list[dict]):

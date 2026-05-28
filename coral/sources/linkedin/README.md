@@ -17,8 +17,8 @@ coral source add ./coral/sources/linkedin/source.yaml
 
 ### 3. Verify
 ```bash
-coral query "SELECT * FROM linkedin.skills LIMIT 5"
-coral query "SELECT * FROM linkedin.positions ORDER BY started_on DESC LIMIT 3"
+coral sql "SELECT * FROM linkedin.skills LIMIT 5"
+coral sql "SELECT * FROM linkedin.positions ORDER BY started_on DESC LIMIT 3"
 ```
 
 ## Tables

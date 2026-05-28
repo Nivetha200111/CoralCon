@@ -13,6 +13,7 @@ def generate_action_items(
     github_signal: dict,
     timing: list[dict],
     follow_up_count: int = 0,
+    portfolio: dict | None = None,
 ) -> list[str]:
     """Generate prioritized action items from analysis data."""
     actions = []
@@ -34,12 +35,24 @@ def generate_action_items(
     if critical_gaps:
         top_skill = critical_gaps[0]["skill"]
         count = critical_gaps[0]["times_required"]
+        destination = "portfolio" if not critical_gaps[0].get("in_portfolio") else "GitHub"
         actions.append(
-            f"Build 1 project using {top_skill} this week. "
+            f"Build and publish 1 {destination} project using {top_skill} this week. "
             f"Missing from {count} rejected applications."
         )
 
-    # 3. GitHub signal
+    # 3. Portfolio signal
+    if portfolio and portfolio.get("configured"):
+        if not portfolio.get("reachable"):
+            actions.append("Fix the portfolio URL before sending more applications. Recruiters cannot inspect the page.")
+        else:
+            visible_skills = len(portfolio.get("detected_skills", []))
+            if visible_skills < 3:
+                actions.append("Add a skills section and 2 project case studies to the portfolio so role keywords are visible.")
+    elif portfolio is not None:
+        actions.append("Add PORTFOLIO_URL or pass --portfolio-url so CoralCon can inspect public proof-of-work.")
+
+    # 4. GitHub signal
     active_ghost = github_signal.get("ghost_rate_active_weeks", 100)
     inactive_ghost = github_signal.get("ghost_rate_inactive_weeks", 100)
     if inactive_ghost - active_ghost > 20:
@@ -49,7 +62,7 @@ def generate_action_items(
             f"Your ghost rate drops {diff:.0f}% in active commit weeks."
         )
 
-    # 4. Timing actions
+    # 5. Timing actions
     same_day_rate = next(
         (t.get("response_rate", 0) for t in timing if t.get("timing_bucket") == "same_day"),
         None,
@@ -64,7 +77,7 @@ def generate_action_items(
             f"Same-day applications have {same_day_rate:.0f}% response rate vs {late_rate:.0f}% late."
         )
 
-    # 5. Follow-up
+    # 6. Follow-up
     if follow_up_count >= 10:
         actions.append(
             f"Send follow-up emails to your {follow_up_count} pending applications. "

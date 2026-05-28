@@ -1,0 +1,199 @@
+// CoralCon App — Main shell: sidebar, navigation, theme toggle, tweaks integration
+
+const { useState: useAppState, useEffect: useAppEffect, useCallback: useAppCb } = React;
+
+const TABS = [
+  { id: 'dashboard', label: 'Dashboard', icon: 'layoutDashboard', badge: '6' },
+  { id: 'proof', label: 'Coral Proof', icon: 'database', badge: '9' },
+  { id: 'cohort', label: 'Crew Analysis', icon: 'users' },
+  { id: 'privacy', label: 'Privacy Vault', icon: 'shield' },
+];
+
+const TAB_PATHS = {
+  dashboard: '/dashboard',
+  proof: '/proof',
+  cohort: '/cohort',
+  privacy: '/privacy',
+};
+
+function getInitialTab() {
+  const path = window.location.pathname.replace(/\/+$/, '') || '/';
+  const match = Object.entries(TAB_PATHS).find(([, tabPath]) => tabPath === path);
+  return match ? match[0] : 'dashboard';
+}
+
+/* ====== COMPASS LOGO SVG ====== */
+function CoralConLogo({ size = 36 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 48 48" fill="none">
+      <circle cx="24" cy="24" r="22" stroke="currentColor" strokeWidth="1.5" opacity="0.3" />
+      <circle cx="24" cy="24" r="16" stroke="currentColor" strokeWidth="1" opacity="0.2" />
+      {/* Compass rose */}
+      <path d="M24 4 L26.5 20 L24 22 L21.5 20 Z" fill="currentColor" opacity="0.9" />
+      <path d="M24 44 L26.5 28 L24 26 L21.5 28 Z" fill="currentColor" opacity="0.4" />
+      <path d="M4 24 L20 21.5 L22 24 L20 26.5 Z" fill="currentColor" opacity="0.4" />
+      <path d="M44 24 L28 21.5 L26 24 L28 26.5 Z" fill="currentColor" opacity="0.9" />
+      <circle cx="24" cy="24" r="3" fill="currentColor" />
+    </svg>
+  );
+}
+
+/* ====== MAIN APP ====== */
+function CoralConApp() {
+  const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{"pirateIntensity":"subtle","accentColor":"#f0a500","chartStyle":"outlined","theme":"dark"}/*EDITMODE-END*/;
+
+  const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS);
+  const [activeTab, setActiveTab] = useAppState(getInitialTab);
+  const [tabKey, setTabKey] = useAppState(0);
+
+  // Apply theme to HTML
+  useAppEffect(() => {
+    document.documentElement.setAttribute('data-theme', tweaks.theme);
+  }, [tweaks.theme]);
+
+  const switchTab = useAppCb((id) => {
+    setActiveTab(id);
+    setTabKey(k => k + 1);
+    const nextPath = TAB_PATHS[id] || '/dashboard';
+    if (window.location.pathname !== nextPath) {
+      window.history.pushState({ tab: id }, '', nextPath);
+    }
+  }, []);
+
+  useAppEffect(() => {
+    const onPopState = () => {
+      setActiveTab(getInitialTab());
+      setTabKey(k => k + 1);
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
+
+  const toggleTheme = useAppCb(() => {
+    setTweak('theme', tweaks.theme === 'dark' ? 'light' : 'dark');
+  }, [tweaks.theme, setTweak]);
+
+  const renderTab = () => {
+    switch (activeTab) {
+      case 'dashboard': return <DashboardTab tweaks={tweaks} />;
+      case 'proof': return <ProofTab tweaks={tweaks} />;
+      case 'cohort': return <CohortTab tweaks={tweaks} />;
+      case 'privacy': return <PrivacyTab tweaks={tweaks} />;
+      default: return <DashboardTab tweaks={tweaks} />;
+    }
+  };
+
+  const accentStyle = {
+    '--cc-gold': tweaks.accentColor,
+    '--cc-gold-dim': tweaks.accentColor + '1a',
+    '--cc-glow-gold': `0 0 24px ${tweaks.accentColor}33`,
+    display: 'flex',
+    height: '100vh',
+    overflow: 'hidden',
+    width: '100%',
+  };
+
+  return (
+    <div style={accentStyle}>
+      {/* Sidebar */}
+      <aside className="cc-sidebar">
+        <div className="cc-logo">
+          <div className="cc-logo-icon">
+            <CoralConLogo size={36} />
+          </div>
+          <div>
+            <div className="cc-logo-text">CoralCon</div>
+            <div className="cc-logo-sub">Career Intelligence</div>
+          </div>
+        </div>
+
+        <nav className="cc-nav">
+          {TABS.map(tab => (
+            <div
+              key={tab.id}
+              className={`cc-nav-item ${activeTab === tab.id ? 'active' : ''}`}
+              onClick={() => switchTab(tab.id)}
+            >
+              <CCIcon name={tab.icon} size={18} />
+              {tab.label}
+              {tab.badge && <span className="cc-badge">{tab.badge}</span>}
+            </div>
+          ))}
+        </nav>
+
+        <div className="cc-sidebar-footer">
+          <button className="cc-theme-toggle" onClick={toggleTheme}>
+            <CCIcon name={tweaks.theme === 'dark' ? 'sun' : 'moon'} size={16} />
+            {tweaks.theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+          </button>
+          <div style={{ fontSize: 11, color: 'var(--cc-text-muted)', padding: '0 var(--cc-sp-3)' }}>
+            Pirates of the Coral-bean
+          </div>
+        </div>
+      </aside>
+
+      <nav className="cc-mobile-nav" aria-label="Primary">
+        {TABS.map(tab => (
+          <button
+            key={tab.id}
+            type="button"
+            className={`cc-mobile-nav-item ${activeTab === tab.id ? 'active' : ''}`}
+            onClick={() => switchTab(tab.id)}
+            aria-label={tab.label}
+          >
+            <CCIcon name={tab.icon} size={18} />
+            <span>{tab.label}</span>
+          </button>
+        ))}
+      </nav>
+
+      {/* Main Content */}
+      <main className="cc-main" key={`tab-${activeTab}-${tabKey}`}>
+        {renderTab()}
+      </main>
+
+      {/* Tweaks Panel */}
+      <TweaksPanel title="CoralCon Tweaks">
+        <TweakSection label="Theme">
+          <TweakRadio
+            label="Appearance"
+            value={tweaks.theme}
+            options={['dark', 'light']}
+            onChange={v => setTweak('theme', v)}
+          />
+        </TweakSection>
+
+        <TweakSection label="Pirate Intensity">
+          <TweakSelect
+            label="Copy & Style"
+            value={tweaks.pirateIntensity}
+            options={['minimal', 'subtle', 'moderate', 'full']}
+            onChange={v => setTweak('pirateIntensity', v)}
+          />
+        </TweakSection>
+
+        <TweakSection label="Accent Color">
+          <TweakColor
+            label="Primary Accent"
+            value={tweaks.accentColor}
+            options={['#f0a500', '#20c9a0', '#4e8cff', '#a78bfa', '#ff6b6b']}
+            onChange={v => setTweak('accentColor', v)}
+          />
+        </TweakSection>
+
+        <TweakSection label="Charts">
+          <TweakRadio
+            label="Chart Style"
+            value={tweaks.chartStyle}
+            options={['filled', 'outlined']}
+            onChange={v => setTweak('chartStyle', v)}
+          />
+        </TweakSection>
+      </TweaksPanel>
+    </div>
+  );
+}
+
+/* ====== MOUNT ====== */
+const ccRoot = ReactDOM.createRoot(document.getElementById('root'));
+ccRoot.render(<CoralConApp />);
