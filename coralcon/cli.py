@@ -148,9 +148,10 @@ def judge_demo(sample_mode, real_mode):
 
 @cli.command()
 def proof():
-    """Print the Coral proof report for logged queries."""
+    """Print the Coral SQL proof report for logged queries."""
     if not proof_summary()["queries"]:
-        CoralConOrchestrator().run_full_analysis(use_ai=False, dry_run=True)
+        with fmt.spinner("Running analysis to generate proof..."):
+            CoralConOrchestrator().run_full_analysis(use_ai=False, dry_run=True)
     console.print(build_proof_report())
 
 
@@ -180,7 +181,8 @@ def benchmark_cache(sample_mode):
 def submit_pack():
     """Generate the hackathon submission folder."""
     if not proof_summary()["queries"]:
-        CoralConOrchestrator().run_full_analysis(use_ai=False, dry_run=True)
+        with fmt.spinner("Running analysis to generate proof..."):
+            CoralConOrchestrator().run_full_analysis(use_ai=False, dry_run=True)
     paths = generate_submission_pack()
     console.print("\n  [bright_green]Submission pack generated.[/bright_green]")
     for path in paths:

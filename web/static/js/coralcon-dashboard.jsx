@@ -87,18 +87,17 @@ function HealthGauge({ score, accent }) {
 }
 
 /* ====== STAT CARD ====== */
-function StatCard({ label, value, suffix, trend, trendDir, decimals = 0, accent, delay = 0 }) {
+function StatCard({ label, value, suffix, sublabel, color, decimals = 0, delay = 0 }) {
   return (
     <Reveal delay={delay}>
       <div className="cc-stat-card">
         <div className="cc-stat-label">{label}</div>
-        <div className="cc-stat-value" style={{ color: accent }}>
+        <div className="cc-stat-value" style={{ color: color || 'var(--cc-gold)' }}>
           <AnimCounter target={value} suffix={suffix} decimals={decimals} duration={1800} />
         </div>
-        {trend && (
-          <div className={`cc-stat-trend ${trendDir}`}>
-            <CCIcon name={trendDir === 'up' ? 'trendingUp' : 'trendingDown'} size={14} />
-            {trend}
+        {sublabel && (
+          <div style={{ fontSize: 12, color: 'var(--cc-text-muted)' }}>
+            {sublabel}
           </div>
         )}
       </div>
@@ -107,8 +106,8 @@ function StatCard({ label, value, suffix, trend, trendDir, decimals = 0, accent,
 }
 
 /* ====== INSIGHT CARD ====== */
-function InsightCard({ insight, delay = 0 }) {
-  const [expanded, setExpanded] = useDashState(false);
+function InsightCard({ insight, startOpen = false, delay = 0 }) {
+  const [expanded, setExpanded] = useDashState(startOpen);
   return (
     <Reveal delay={delay}>
       <div className={`cc-insight-card ${expanded ? 'expanded' : ''}`} onClick={() => setExpanded(!expanded)}>
@@ -121,11 +120,11 @@ function InsightCard({ insight, delay = 0 }) {
         {expanded && (
           <div className="cc-insight-body" onClick={e => e.stopPropagation()}>
             <div className="cc-insight-row">
-              <span className="cc-insight-label">Root Cause</span>
+              <span className="cc-insight-label">Why</span>
               <span className="cc-insight-value">{insight.rootCause}</span>
             </div>
             <div className="cc-insight-row">
-              <span className="cc-insight-label">Action</span>
+              <span className="cc-insight-label">Fix</span>
               <span className="cc-insight-value" style={{ color: 'var(--cc-teal)', fontWeight: 600 }}>{insight.action}</span>
             </div>
             <div className="cc-insight-row">
@@ -133,10 +132,10 @@ function InsightCard({ insight, delay = 0 }) {
               <span className="cc-insight-value">{insight.impact}</span>
             </div>
             <div className="cc-insight-row">
-              <span className="cc-insight-label">Evidence</span>
+              <span className="cc-insight-label">Data Source</span>
               <span className="cc-insight-value">
-                Query {insight.evidence.queryId} &rarr; {insight.evidence.rows} rows from {insight.evidence.sources.join(', ')}
-                {insight.confidence && ` (${Math.round(insight.confidence * 100)}% confidence)`}
+                {insight.evidence.sources.join(' + ')} ({insight.evidence.rows} rows analyzed)
+                {insight.confidence && <span style={{ color: 'var(--cc-text-muted)' }}> &middot; {Math.round(insight.confidence * 100)}% confidence</span>}
               </span>
             </div>
           </div>
@@ -189,26 +188,26 @@ function buildPortfolioProductData(result) {
         severity: result.reachable ? 'medium' : 'critical',
         claim: result.reachable
           ? `${result.title || result.url} exposes ${skills.length} skills, ${projectCount} project links, and ${githubCount} GitHub links.`
-          : `CoralCon could not inspect ${result.url}.`,
+          : `Could not reach ${result.url}. Recruiters won't be able to see your work.`,
         rootCause: result.reachable
-          ? 'The page can be inspected, but recruiter-facing proof still depends on clear skills, projects, and source links.'
+          ? 'Page loads fine, but recruiter-facing proof depends on clear skills, projects, and source links being visible above the fold.'
           : 'The URL is not returning inspectable HTML from the public internet.',
         action: skills.length
-          ? 'Move the strongest skills and project links into the first viewport and keep GitHub links visible.'
-          : 'Add an explicit skills section using the exact technologies you want recruiters to match.',
-        impact: 'Turns the portfolio into a clear proof surface instead of a passive personal page.',
+          ? 'Move your strongest skills and project links into the first viewport. Keep GitHub links visible.'
+          : 'Add an explicit skills section listing the exact technologies you want recruiters to find.',
+        impact: 'Turns the portfolio into a proof surface instead of a passive page.',
         evidence: { queryId: 'portfolio_scan', rows: 1, sources: [result.url] },
         confidence: 0.78,
       },
       {
         id: 'project-proof',
-        title: projectCount ? 'Project links found' : 'Project proof missing',
+        title: projectCount ? 'Project links found' : 'No project links detected',
         severity: projectCount ? 'medium' : 'high',
         claim: projectCount
-          ? `${projectCount} project-style links were detected.`
-          : 'No project links were detected from the page markup.',
+          ? `${projectCount} project-style links were detected on the page.`
+          : 'No project links were found. Recruiters need to see shipped work.',
         rootCause: 'Recruiters need direct paths from claims to shipped work.',
-        action: 'Add direct live demo and repository links for the top 3 projects.',
+        action: 'Add direct live demo and repository links for your top 3 projects.',
         impact: 'Reduces friction between reading the portfolio and verifying proof.',
         evidence: { queryId: 'portfolio_links', rows: projectCount, sources: [result.url] },
         confidence: 0.74,
@@ -247,8 +246,8 @@ function PortfolioInspector({ accent, onScan }) {
   return (
     <div className="cc-portfolio-panel">
       <div className="cc-portfolio-copy">
-        <div className="cc-card-title">Portfolio Inspection</div>
-        <p>Paste a public portfolio link to inspect visible skills, project links, and GitHub proof.</p>
+        <div className="cc-card-title">Check Your Portfolio</div>
+        <p>Paste your portfolio URL to see what recruiters actually find when they visit.</p>
       </div>
       <div className="cc-portfolio-controls">
         <input
@@ -261,15 +260,15 @@ function PortfolioInspector({ accent, onScan }) {
         />
         <button className="cc-portfolio-button" onClick={scanPortfolio} disabled={loading || !url.trim()}>
           <CCIcon name="search" size={16} />
-          {loading ? 'Scanning' : 'Inspect'}
+          {loading ? 'Scanning...' : 'Scan'}
         </button>
       </div>
       {result && (
         <div className="cc-portfolio-result">
           <span className={`cc-portfolio-status ${result.reachable ? 'ok' : 'bad'}`}>
-            {result.reachable ? 'Reachable' : 'Needs Fix'}
+            {result.reachable ? 'Reachable' : 'Not Reachable'}
           </span>
-          <span>{skills.length} skills</span>
+          <span>{skills.length} skills found</span>
           <span>{(result.project_links || []).length} project links</span>
           <span>{(result.github_links || []).length} GitHub links</span>
           {skills.slice(0, 8).map(skill => (
@@ -282,33 +281,40 @@ function PortfolioInspector({ accent, onScan }) {
   );
 }
 
-/* ====== PIRATE COPY VARIANTS ====== */
-const PIRATE_COPY = {
-  minimal: {
-    tagline: ['The job market failed you.', ' Query it back.'],
-    subtitle: 'CoralCon joins applications, portfolio proof, GitHub, and profile signals into one career intelligence surface.',
-    healthTitle: 'Career Health Score',
-    healthDesc: 'A composite score from application outcomes, skill alignment, GitHub activity, portfolio evidence, and timing signals.',
-  },
-  subtle: {
-    tagline: ['The job market conned you.', ' Query it back.'],
-    subtitle: 'One SQL layer across GitHub, Notion, LinkedIn, and portfolio proof. Evidence first, recommendations second.',
-    healthTitle: 'Seaworthiness Score',
-    healthDesc: 'Your career vessel scored across rejection patterns, skill gaps, portfolio proof, public activity, and follow-through.',
-  },
-  moderate: {
-    tagline: ['The seas took your treasure.', " We're charting the way back."],
-    subtitle: 'CoralCon maps the currents behind weak responses: role targeting, skill evidence, portfolio proof, and public signals.',
-    healthTitle: 'Seaworthiness Report',
-    healthDesc: 'A practical survey of the leaks: missing skills, weak project proof, stale activity, and application timing.',
-  },
-  full: {
-    tagline: ['Ahoy, Captain.', " Yer ship's been sinkin'."],
-    subtitle: "Stop prayin' to the kraken. Query the wreckage, patch the holes, and sail at roles you can actually win.",
-    healthTitle: "Cap'n's Seaworthiness Log",
-    healthDesc: "Every rejection, skill gap, and portfolio signal charted from bow to stern.",
-  },
-};
+/* ====== HOW IT WORKS BANNER ====== */
+function HowItWorksBanner({ accent }) {
+  const [dismissed, setDismissed] = useDashState(false);
+  if (dismissed) return null;
+
+  const steps = [
+    { icon: 'database', title: 'Pull your data', desc: 'GitHub repos, Notion applications, LinkedIn profile' },
+    { icon: 'code', title: 'Find patterns', desc: 'SQL queries join all 3 sources to find what\'s failing' },
+    { icon: 'target', title: 'Get fixes', desc: 'Each recommendation is backed by data, not guesswork' },
+  ];
+
+  return (
+    <div className="cc-how-banner">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--cc-sp-4)' }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: accent, textTransform: 'uppercase', letterSpacing: '0.06em' }}>How CoralCon works</div>
+        <button
+          onClick={(e) => { e.stopPropagation(); setDismissed(true); }}
+          style={{ background: 'none', border: 'none', color: 'var(--cc-text-muted)', cursor: 'pointer', fontSize: 18, padding: 4 }}
+        >&times;</button>
+      </div>
+      <div className="cc-how-steps">
+        {steps.map((step, i) => (
+          <div key={i} className="cc-how-step">
+            <div className="cc-how-step-num" style={{ background: accent, color: 'var(--cc-text-on-accent)' }}>{i + 1}</div>
+            <div>
+              <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 2 }}>{step.title}</div>
+              <div style={{ fontSize: 13, color: 'var(--cc-text-secondary)' }}>{step.desc}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 /* ====== DASHBOARD TAB ====== */
 function DashboardTab({ tweaks }) {
@@ -316,8 +322,6 @@ function DashboardTab({ tweaks }) {
   const [loading, setLoading] = useDashState(true);
   const [loadError, setLoadError] = useDashState('');
   const accent = tweaks.accentColor || '#f0a500';
-  const intensity = tweaks.pirateIntensity || 'subtle';
-  const copy = PIRATE_COPY[intensity] || PIRATE_COPY.subtle;
   const theme = tweaks.theme || 'dark';
   const portfolioMode = data.portfolioMode;
 
@@ -348,19 +352,29 @@ function DashboardTab({ tweaks }) {
       <Reveal>
         <div className="cc-hero">
           <div>
-            <div className="cc-hero-kicker">Overview</div>
             <div className="cc-hero-tagline">
-              {copy.tagline[0]}{copy.tagline[1] && <em>{copy.tagline[1]}</em>}
+              {portfolioMode ? (
+                <>Portfolio Report</>
+              ) : (
+                <>Why you're getting rejected<em> — and what to fix</em></>
+              )}
             </div>
-            <p className="cc-hero-sub">{copy.subtitle}</p>
+            <p className="cc-hero-sub">
+              {portfolioMode
+                ? 'Your portfolio scanned for recruiter-visible skills, projects, and proof.'
+                : 'CoralCon analyzed your applications, GitHub activity, and LinkedIn profile to find the patterns behind your rejections.'
+              }
+            </p>
             <div className="cc-live-status">
-              <span className={data.usingSampleData ? 'sample' : 'live'}>{data.usingSampleData ? 'Sample fallback' : 'Live sources'}</span>
-              {loading && <span>Loading source data...</span>}
+              <span className={data.usingSampleData ? 'sample' : 'live'}>
+                {data.usingSampleData ? 'Demo data' : 'Your data'}
+              </span>
+              {loading && <span>Loading...</span>}
               {loadError && <span className="error">{loadError}</span>}
             </div>
           </div>
           <div className="cc-hero-sources">
-            {['gitBranch:GitHub', 'fileText:Notion', 'link:LinkedIn', 'code:Portfolio'].map((s) => {
+            {['gitBranch:GitHub', 'fileText:Notion', 'link:LinkedIn'].map((s) => {
               const [icon, label] = s.split(':');
               return (
                 <span key={label} className="cc-source-pill">
@@ -368,24 +382,84 @@ function DashboardTab({ tweaks }) {
                 </span>
               );
             })}
-            <span className="cc-source-pill active">
-              <CCIcon name="database" size={14} /> Coral SQL
-            </span>
           </div>
         </div>
       </Reveal>
+
+      {/* How It Works */}
+      {!portfolioMode && (
+        <Reveal>
+          <HowItWorksBanner accent={accent} />
+        </Reveal>
+      )}
 
       {/* Health Score + Stats */}
       <Reveal delay={100}>
         <div className="cc-health-section">
           <HealthGauge score={data.stats.healthScore} accent={accent} />
           <div className="cc-health-info">
-            <h2>{portfolioMode ? 'Portfolio Readiness Score' : copy.healthTitle}</h2>
-            <p>{portfolioMode ? 'A public-readiness score from visible skills, project links, and GitHub proof.' : copy.healthDesc}</p>
+            <h2>{portfolioMode ? 'Portfolio Readiness' : 'Your Search Health'}</h2>
+            <p>
+              {portfolioMode
+                ? 'How recruiter-ready your portfolio looks based on visible skills, projects, and GitHub links.'
+                : data.stats.healthScore < 40
+                  ? 'Your score is low. The biggest issues are below — start with the top one.'
+                  : data.stats.healthScore < 70
+                    ? 'Getting there. Fix the top issues below and this score will climb fast.'
+                    : 'Looking strong. Fine-tune the remaining issues to maximize your response rate.'
+              }
+            </p>
           </div>
         </div>
       </Reveal>
 
+      {/* Stat Cards */}
+      <div className="cc-stats-grid">
+        <StatCard
+          label={portfolioMode ? 'Skills Found' : 'Applications'}
+          value={data.stats.totalApplications}
+          color={accent}
+          sublabel={portfolioMode ? 'on your portfolio' : 'tracked in Notion'}
+          delay={0}
+        />
+        <StatCard
+          label={portfolioMode ? 'Project Links' : 'Response Rate'}
+          value={data.stats.responseRate}
+          suffix={portfolioMode ? '' : '%'}
+          color={data.stats.responseRate < 25 ? 'var(--cc-red)' : 'var(--cc-teal)'}
+          sublabel={portfolioMode ? 'visible to recruiters' : data.stats.responseRate < 25 ? 'below average' : 'on track'}
+          delay={70}
+        />
+        <StatCard
+          label={portfolioMode ? 'GitHub Links' : 'Interview Rate'}
+          value={data.stats.interviewRate}
+          suffix={portfolioMode ? '' : '%'}
+          color="var(--cc-orange)"
+          sublabel={portfolioMode ? 'proof of work' : data.stats.interviewRate < 10 ? 'needs improvement' : 'decent'}
+          delay={140}
+        />
+        <StatCard
+          label={portfolioMode ? 'Readiness' : 'Offer Rate'}
+          value={data.stats.offerRate}
+          suffix="%"
+          decimals={portfolioMode ? 0 : 1}
+          color={data.stats.offerRate < 3 ? 'var(--cc-red)' : 'var(--cc-teal)'}
+          sublabel={portfolioMode ? 'portfolio score' : data.stats.offerRate < 3 ? 'way too low' : 'keep it up'}
+          delay={210}
+        />
+      </div>
+
+      {/* Top Findings — first insight expanded */}
+      <Reveal>
+        <div className="cc-section-title">What's Hurting You Most</div>
+      </Reveal>
+      <div className="cc-insights" style={{ marginBottom: 'var(--cc-sp-6)' }}>
+        {data.insights.slice(0, 3).map((ins, i) => (
+          <InsightCard key={ins.id} insight={ins} startOpen={i === 0} delay={i * 60} />
+        ))}
+      </div>
+
+      {/* Portfolio Inspector */}
       <Reveal delay={120}>
         <PortfolioInspector
           accent={accent}
@@ -393,57 +467,62 @@ function DashboardTab({ tweaks }) {
         />
       </Reveal>
 
-      {/* Stat Cards */}
-      <div className="cc-stats-grid">
-        <StatCard label={portfolioMode ? 'Skills Found' : 'Applications'} value={data.stats.totalApplications} accent={accent} trend={portfolioMode ? 'from portfolio' : 'past 6 months'} trendDir="up" delay={0} />
-        <StatCard label={portfolioMode ? 'Project Links' : 'Response Rate'} value={data.stats.responseRate} suffix={portfolioMode ? '' : '%'} accent={portfolioMode ? 'var(--cc-teal)' : 'var(--cc-red)'} trend={portfolioMode ? 'public proof' : 'below 30% avg'} trendDir={portfolioMode ? 'up' : 'down'} delay={70} />
-        <StatCard label={portfolioMode ? 'GitHub Links' : 'Interview Rate'} value={data.stats.interviewRate} suffix={portfolioMode ? '' : '%'} accent="var(--cc-orange)" trend={portfolioMode ? 'source proof' : 'below 12% avg'} trendDir={portfolioMode ? 'up' : 'down'} delay={140} />
-        <StatCard label={portfolioMode ? 'Readiness' : 'Offer Rate'} value={data.stats.offerRate} suffix="%" decimals={portfolioMode ? 0 : 1} accent={portfolioMode ? 'var(--cc-teal)' : 'var(--cc-red)'} trend={portfolioMode ? 'portfolio score' : 'below 4% avg'} trendDir={portfolioMode ? 'up' : 'down'} delay={210} />
-      </div>
-
       {/* Charts */}
       <Reveal delay={50}>
-        <div className="cc-section-title">Analysis</div>
+        <div className="cc-section-title">The Evidence</div>
       </Reveal>
       <div className="cc-charts-grid" style={{ marginBottom: 'var(--cc-sp-6)' }}>
         <Reveal delay={0}>
           <div className="cc-chart-card">
-            <div className="cc-card-title">{portfolioMode ? 'Portfolio Proof Coverage' : 'Rejection Rate by Role'}</div>
+            <div className="cc-card-title">{portfolioMode ? 'Portfolio Coverage' : 'Rejection Rate by Role'}</div>
+            <p style={{ fontSize: 13, color: 'var(--cc-text-muted)', marginBottom: 12 }}>
+              {portfolioMode ? 'How well your portfolio covers each proof category.' : 'Which types of roles reject you most. High bars = bad fit.'}
+            </p>
             <RejectionBars data={data.rejectionByRole} animate={true} />
           </div>
         </Reveal>
         <Reveal delay={100}>
           <div className="cc-chart-card">
-            <div className="cc-card-title">{portfolioMode ? 'Public Proof Timeline' : 'GitHub Contribution Heatmap'}</div>
-            <GithubHeatmap data={data.githubHeatmap} theme={theme} accent={accent} />
-            <p style={{ fontSize: 12, color: 'var(--cc-text-muted)', marginTop: 12 }}>
-              Weeks with 0 commits &rarr; 85% ghost rate. Active weeks &rarr; 34% ghost rate.
+            <div className="cc-card-title">{portfolioMode ? 'Activity Timeline' : 'Your GitHub Activity'}</div>
+            <p style={{ fontSize: 13, color: 'var(--cc-text-muted)', marginBottom: 12 }}>
+              Weeks with no commits have an 85% ghost rate. Active weeks drop to 34%.
             </p>
+            <GithubHeatmap data={data.githubHeatmap} theme={theme} accent={accent} />
           </div>
         </Reveal>
         <Reveal delay={50}>
           <div className="cc-chart-card">
-            <div className="cc-card-title">Skill Gap Radar</div>
+            <div className="cc-card-title">Skills: Demanded vs Your Profile</div>
+            <p style={{ fontSize: 13, color: 'var(--cc-text-muted)', marginBottom: 12 }}>
+              Red = what jobs want. Green = what's on your GitHub/LinkedIn. Gaps = why you're rejected.
+            </p>
             <SkillRadar data={data.skillGap} theme={theme} accent={accent} chartStyle={tweaks.chartStyle} />
           </div>
         </Reveal>
         <Reveal delay={150}>
           <div className="cc-chart-card">
-            <div className="cc-card-title">Application Timing vs Outcome</div>
+            <div className="cc-card-title">Does Applying Early Matter?</div>
+            <p style={{ fontSize: 13, color: 'var(--cc-text-muted)', marginBottom: 12 }}>
+              Ghost rate by how many days after posting you applied. Earlier = better.
+            </p>
             <TimingChart data={data.timing} theme={theme} accent={accent} chartStyle={tweaks.chartStyle} />
           </div>
         </Reveal>
       </div>
 
-      {/* Insights */}
-      <Reveal>
-        <div className="cc-section-title">Recommended Actions</div>
-      </Reveal>
-      <div className="cc-insights">
-        {data.insights.map((ins, i) => (
-          <InsightCard key={ins.id} insight={ins} delay={i * 60} />
-        ))}
-      </div>
+      {/* Remaining Insights */}
+      {data.insights.length > 3 && (
+        <>
+          <Reveal>
+            <div className="cc-section-title">More Findings</div>
+          </Reveal>
+          <div className="cc-insights">
+            {data.insights.slice(3).map((ins, i) => (
+              <InsightCard key={ins.id} insight={ins} delay={i * 60} />
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }

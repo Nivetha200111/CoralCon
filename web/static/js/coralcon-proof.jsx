@@ -59,8 +59,27 @@ function QueryCard({ query, accent }) {
 /* ====== PROOF TAB ====== */
 function ProofTab({ tweaks }) {
   const data = CORALCON_DATA;
+  const [liveProof, setLiveProof] = React.useState(null);
   const accent = tweaks.accentColor || '#f0a500';
-  const queries = data.coralQueries;
+
+  React.useEffect(() => {
+    fetch('/api/proof').then(r => r.json()).then(ps => {
+      if (ps.queries && ps.queries.length > 0) {
+        setLiveProof(ps);
+      }
+    }).catch(() => {});
+  }, []);
+
+  const queries = liveProof ? liveProof.queries.map(q => ({
+    id: q.query_id,
+    name: q.query_name,
+    sql: q.sql,
+    sources: q.sources_used || [],
+    crossSource: q.is_cross_source,
+    rows: q.rows_returned,
+    executionMs: q.execution_ms,
+    cached: q.used_cache,
+  })) : data.coralQueries;
   const crossSourceCount = queries.filter(q => q.crossSource).length;
   const totalRows = queries.reduce((s, q) => s + q.rows, 0);
   const allSources = [...new Set(queries.flatMap(q => q.sources))];
@@ -70,27 +89,41 @@ function ProofTab({ tweaks }) {
   return (
     <div>
       <div className="cc-page-header">
-        <h1 className="cc-page-title">Coral Proof</h1>
-        <span className="cc-page-subtitle">Every query. Every source. Every JOIN. Verified.</span>
+        <h1 className="cc-page-title">How It Works</h1>
+        <span className="cc-page-subtitle">Every data query CoralCon ran, with sources and results</span>
+      </div>
+      <div className="cc-card" style={{ marginBottom: 'var(--cc-sp-6)', padding: 'var(--cc-sp-5)' }}>
+        <p style={{ fontSize: 14, color: 'var(--cc-text-secondary)', lineHeight: 1.7 }}>
+          CoralCon uses <strong style={{ color: 'var(--cc-text-primary)' }}>Coral SQL</strong> to query your GitHub, Notion, and LinkedIn data as if they were database tables.
+          Instead of writing three separate API integrations, Coral lets us write one SQL query that joins data across all sources.
+          Every query below is real — you can see exactly what data was pulled and how conclusions were reached.
+        </p>
       </div>
 
       {/* Summary Stats */}
       <Reveal>
       <div className="cc-proof-stats">
         <div className="cc-stat-card">
-          <div className="cc-stat-label">Total Queries</div>
+          <div className="cc-stat-label">Total Coral Queries</div>
           <div className="cc-stat-value" style={{ color: accent }}><AnimCounter target={queries.length} /></div>
           <div style={{ fontSize: 12, color: 'var(--cc-text-muted)' }}>{crossSourceCount} cross-source JOINs</div>
         </div>
         <div className="cc-stat-card">
           <div className="cc-stat-label">Data Sources</div>
           <div className="cc-stat-value" style={{ color: 'var(--cc-teal)' }}><AnimCounter target={allSources.length} /></div>
-          <div style={{ fontSize: 12, color: 'var(--cc-text-muted)' }}>across 3 platforms</div>
+          <div style={{ fontSize: 12, color: 'var(--cc-text-muted)' }}>GitHub + Notion + LinkedIn</div>
         </div>
         <div className="cc-stat-card">
-          <div className="cc-stat-label">Total Rows Processed</div>
+          <div className="cc-stat-label">Rows Returned</div>
           <div className="cc-stat-value" style={{ color: 'var(--cc-blue)' }}><AnimCounter target={totalRows} /></div>
           <div style={{ fontSize: 12, color: 'var(--cc-text-muted)' }}>avg {avgExec}ms / query</div>
+        </div>
+        <div className="cc-stat-card">
+          <div className="cc-stat-label">Cached Queries</div>
+          <div className="cc-stat-value" style={{ color: 'var(--cc-orange)' }}><AnimCounter target={cachedCount} /></div>
+          <div style={{ fontSize: 12, color: 'var(--cc-text-muted)' }}>
+            {liveProof ? (liveProof.mode === 'sample' ? 'deterministic sample mode' : 'live Coral mode') : (data.usingSampleData ? 'deterministic sample mode' : 'live Coral mode')}
+          </div>
         </div>
       </div>
       </Reveal>
@@ -152,11 +185,16 @@ function ProofTab({ tweaks }) {
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--cc-sp-4)' }}>
           <CCIcon name="zap" size={24} style={{ color: accent, flexShrink: 0, marginTop: 2 }} />
           <div>
-            <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 6 }}>Why Coral Is Essential</div>
+            <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 6 }}>Why Coral Is at the Core</div>
+            <p style={{ fontSize: 14, color: 'var(--cc-text-secondary)', lineHeight: 1.7, marginBottom: 8 }}>
+              Coral SQL is the central data layer. Without it, CoralCon would need three separate
+              API integrations with custom auth, pagination, schema mapping, and correlation logic.
+              With Coral, the agent asks one SQL question across all sources.
+            </p>
             <p style={{ fontSize: 14, color: 'var(--cc-text-secondary)', lineHeight: 1.7 }}>
-              Without Coral, CoralCon would need separate GitHub, Notion, and LinkedIn integrations
-              plus custom pagination, auth, schema mapping, and correlation logic. With Coral,
-              the agent asks one SQL question across all sources.
+              The {crossSourceCount} cross-source JOINs above are what make evidence-backed insights
+              possible. Joining <code>notion.applications</code> with <code>github.activity</code> and{' '}
+              <code>linkedin.skills</code> proves whether your profile signals match role requirements.
             </p>
           </div>
         </div>
