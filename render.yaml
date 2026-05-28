@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: coralcon
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt && pip install -e .
+    startCommand: uvicorn web.app:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /healthz
+    envVars:
+      - key: CORAL_AVAILABLE
+        value: "false"
+      - key: USE_SAMPLE_DATA
+        value: "true"
+      - key: CORALCON_QUERY_CACHE
+        value: "true"

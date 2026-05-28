@@ -10,7 +10,7 @@ FROM (
   SELECT
     skill_name as skill,
     (g.languages LIKE '%' || skill_name || '%') as in_github,
-    (l.skills LIKE '%' || skill_name || '%') as in_linkedin
+    (l.name LIKE '%' || skill_name || '%') as in_linkedin
   FROM (
     SELECT UNNEST(n.required_skills) as skill_name
     FROM notion.applications n

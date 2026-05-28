@@ -14,6 +14,7 @@ from coralcon.cohort.report import build_cohort_report
 from coralcon.demo.judge_demo import demo_lines, run_judge_demo
 from coralcon.notion.client import NotionWriteClient
 from coralcon.orchestrator import CoralConOrchestrator
+from coralcon.portfolio import inspect_portfolio
 from coralcon.privacy.report import write_privacy_report
 from coralcon.proof.report import build_proof_report, proof_summary
 from coralcon.queries import (
@@ -41,8 +42,10 @@ def cli():
 @click.option("--no-dashboard", is_flag=True, help="Skip Notion dashboard update")
 @click.option("--no-actions", is_flag=True, help="Skip Notion action task creation")
 @click.option("--dry-run", is_flag=True, help="Preview Notion writes without creating them")
-def analyze(no_ai, no_dashboard, no_actions, dry_run):
+@click.option("--portfolio-url", help="Public portfolio URL to inspect during analysis")
+def analyze(no_ai, no_dashboard, no_actions, dry_run, portfolio_url):
     """Run the full Phase 2 pipeline across all agents."""
+    _set_portfolio_url(portfolio_url)
     fmt.print_header("FULL ANALYSIS", "Querying GitHub, Notion, and LinkedIn via Coral SQL...")
 
     orchestrator = CoralConOrchestrator()
@@ -61,6 +64,7 @@ def analyze(no_ai, no_dashboard, no_actions, dry_run):
     console.print()
     fmt.print_skill_gaps(insights["skill_gaps"])
     console.print()
+    fmt.print_portfolio_signal(insights.get("portfolio", {}))
     fmt.print_github_signal(insights["github_correlation"])
     fmt.print_action_items(insights["action_items"])
 
@@ -88,8 +92,10 @@ def analyze(no_ai, no_dashboard, no_actions, dry_run):
 
 
 @cli.command()
-def recon():
+@click.option("--portfolio-url", help="Public portfolio URL to inspect")
+def recon(portfolio_url):
     """Run Agent 1 only and print source counts."""
+    _set_portfolio_url(portfolio_url)
     fmt.print_header("RECON", "Scanning all Coral SQL sources...")
     with fmt.spinner("Fetching raw data..."):
         raw = CoralConOrchestrator().run_recon()
@@ -98,14 +104,20 @@ def recon():
     console.print(f"  Applications:       [bright_cyan]{len(raw.get('applications', []))}[/bright_cyan]")
     console.print(f"  GitHub weeks:       [bright_cyan]{len(raw.get('github_activity', []))}[/bright_cyan]")
     console.print(f"  LinkedIn skills:    [bright_cyan]{len(raw.get('linkedin_profile', {}).get('skills', []))}[/bright_cyan]")
+    portfolio = raw.get("portfolio", {})
+    portfolio_status = "reachable" if portfolio.get("reachable") else ("configured" if portfolio.get("configured") else "not set")
+    console.print(f"  Portfolio:          [bright_cyan]{portfolio_status}[/bright_cyan]")
     console.print(f"  Rejection patterns: [bright_cyan]{len(raw.get('rejection_patterns', []))}[/bright_cyan]")
+    fmt.print_portfolio_signal(portfolio)
     console.print()
 
 
 @cli.command()
 @click.option("--no-ai", is_flag=True, help="Skip LLM analysis")
-def insights(no_ai):
+@click.option("--portfolio-url", help="Public portfolio URL to inspect during analysis")
+def insights(no_ai, portfolio_url):
     """Run Recon + Analyst agents only."""
+    _set_portfolio_url(portfolio_url)
     fmt.print_header("INSIGHTS", "Generating structured analysis...")
     with fmt.spinner("Running analysis..."):
         data = CoralConOrchestrator().run_insights(use_ai=not no_ai)
@@ -115,6 +127,7 @@ def insights(no_ai):
     fmt.print_rejection_table(data["rejection_patterns"])
     console.print()
     fmt.print_skill_gaps(data["skill_gaps"])
+    fmt.print_portfolio_signal(data.get("portfolio", {}))
     fmt.print_action_items(data["action_items"])
     if data.get("llm_insights"):
         fmt.print_llm_insights(data["llm_insights"])
@@ -190,8 +203,10 @@ def cohort_analyze():
 @click.option("--no-ai", is_flag=True, help="Skip LLM analysis")
 @click.option("--dry-run", is_flag=True, help="Preview dashboard update without writing to Notion")
 @click.option("--sample", "sample_mode", is_flag=True, help="Force sample mode")
-def dashboard(no_ai, dry_run, sample_mode):
+@click.option("--portfolio-url", help="Public portfolio URL to inspect during analysis")
+def dashboard(no_ai, dry_run, sample_mode, portfolio_url):
     """Run Recon + Analyst + Dashboard agents."""
+    _set_portfolio_url(portfolio_url)
     if sample_mode:
         os.environ["CORAL_AVAILABLE"] = "false"
     fmt.print_header("DASHBOARD", "Updating the Notion dashboard when configured...")
@@ -209,8 +224,10 @@ def dashboard(no_ai, dry_run, sample_mode):
 @cli.command()
 @click.option("--no-ai", is_flag=True, help="Skip LLM analysis")
 @click.option("--dry-run", is_flag=True, help="Preview tasks without writing to Notion")
-def actions(no_ai, dry_run):
+@click.option("--portfolio-url", help="Public portfolio URL to inspect during analysis")
+def actions(no_ai, dry_run, portfolio_url):
     """Run Recon + Analyst + Action agents."""
+    _set_portfolio_url(portfolio_url)
     fmt.print_header("ACTIONS", "Creating or previewing Notion action tasks...")
     with fmt.spinner("Preparing tasks..."):
         result = CoralConOrchestrator().run_actions(use_ai=not no_ai, dry_run=True if dry_run else None)
@@ -262,15 +279,22 @@ def rejections(ai):
 
 @cli.command()
 @click.option("--ai", is_flag=True, help="Add AI analysis")
-def gaps(ai):
+@click.option("--portfolio-url", help="Public portfolio URL to inspect during gap analysis")
+def gaps(ai, portfolio_url):
     """Skill gap analysis: what roles want vs what your profile shows."""
+    _set_portfolio_url(portfolio_url)
     fmt.print_header("SKILL GAP ANALYSIS")
 
     with fmt.spinner("Cross-referencing rejected applications with GitHub + LinkedIn..."):
         gap_data = skill_gaps.fetch()
         github_data = github_correlation.fetch()
+        portfolio = inspect_portfolio()
+        detected = {str(skill).casefold() for skill in portfolio.get("detected_skills", [])}
+        for gap in gap_data:
+            gap["in_portfolio"] = str(gap.get("skill", "")).casefold() in detected
 
     fmt.print_skill_gaps(gap_data)
+    fmt.print_portfolio_signal(portfolio)
 
     if ai:
         github_langs = []
@@ -370,6 +394,17 @@ def github_check():
         console.print("  [bright_green]OK[/bright_green] GitHub activity has limited correlation with ghost rate.\n")
 
 
+@cli.command("portfolio-check")
+@click.argument("url", required=False)
+def portfolio_check(url):
+    """Inspect a public portfolio URL for recruiter-visible evidence."""
+    _set_portfolio_url(url)
+    fmt.print_header("PORTFOLIO CHECK", "Scanning public page text, skills, project links, and GitHub links...")
+    with fmt.spinner("Inspecting portfolio page..."):
+        portfolio = inspect_portfolio()
+    fmt.print_portfolio_signal(portfolio)
+
+
 @cli.command()
 def status():
     """Check Coral connection and data sources."""
@@ -416,6 +451,11 @@ def _print_insight_summary(insights: dict) -> None:
             "OFFER RATE": (f"{insights['offer_rate']:.0f}%", "bright_green"),
         }
     )
+
+
+def _set_portfolio_url(portfolio_url: str | None) -> None:
+    if portfolio_url:
+        os.environ["PORTFOLIO_URL"] = portfolio_url
 
 
 def build_file_message(label: str, path) -> str:

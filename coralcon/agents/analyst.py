@@ -17,6 +17,8 @@ class AnalystAgent:
         gaps = raw_data.get("skill_gaps", [])
         timing = raw_data.get("timing", [])
         followups = raw_data.get("followups", [])
+        portfolio = raw_data.get("portfolio", {})
+        gaps = self._merge_portfolio_evidence(gaps, portfolio)
 
         totals = self._totals(patterns)
         github_signal = recommender.compute_github_signal(github_rows, github_rows)
@@ -26,6 +28,7 @@ class AnalystAgent:
             github_signal,
             timing,
             len(followups),
+            portfolio,
         )
 
         insights = {
@@ -36,7 +39,8 @@ class AnalystAgent:
             "github_correlation": github_signal,
             "followup_priorities": recommender.prioritize_followups(followups),
             "action_items": action_items,
-            "overall_health_score": self._health_score(totals, gaps, github_signal, followups),
+            "portfolio": portfolio,
+            "overall_health_score": self._health_score(totals, gaps, github_signal, followups, portfolio),
             "evidence_insights": [],
             "llm_insights": None,
         }
@@ -49,6 +53,12 @@ class AnalystAgent:
                         "rejections": patterns,
                         "github_signal": github_signal,
                         "skill_gaps": gaps,
+                        "portfolio": {
+                            "reachable": portfolio.get("reachable", False),
+                            "detected_skills": portfolio.get("detected_skills", []),
+                            "project_links": len(portfolio.get("project_links", [])),
+                            "github_links": len(portfolio.get("github_links", [])),
+                        },
                         "timing": timing,
                         "total_applications": totals["total_applications"],
                         "response_rate": totals["response_rate"],
@@ -80,6 +90,7 @@ class AnalystAgent:
         gaps: list[dict],
         github_signal: dict,
         followups: list[dict],
+        portfolio: dict | None = None,
     ) -> int:
         score = 45
         score += min(totals.get("response_rate", 0) * 1.2, 30)
@@ -98,7 +109,30 @@ class AnalystAgent:
         hot_followups = sum(1 for item in followups if item.get("priority") == "hot")
         score -= min(hot_followups, 10)
 
+        if portfolio and portfolio.get("configured"):
+            if portfolio.get("reachable"):
+                score += min(len(portfolio.get("detected_skills", [])), 8)
+                if portfolio.get("github_links") or portfolio.get("project_links"):
+                    score += 4
+            else:
+                score -= 8
+
         return max(0, min(100, round(score)))
+
+    @staticmethod
+    def _merge_portfolio_evidence(gaps: list[dict], portfolio: dict) -> list[dict]:
+        detected = {str(skill).casefold() for skill in portfolio.get("detected_skills", [])}
+        merged = []
+        for gap in gaps:
+            item = dict(gap)
+            in_portfolio = str(item.get("skill", "")).casefold() in detected
+            item["in_portfolio"] = in_portfolio
+            if in_portfolio and item.get("priority") == "critical":
+                item["priority"] = "high"
+            elif in_portfolio and item.get("priority") == "high":
+                item["priority"] = "medium"
+            merged.append(item)
+        return merged
 
     @staticmethod
     def _write_run_artifacts(insights: dict) -> None:
