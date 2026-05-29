@@ -8,7 +8,7 @@ from rich.console import Console
 
 load_dotenv()
 
-from coralcon.agents import analyzer, recommender
+from coralcon.agents import analyzer, recommender, router
 from coralcon.benchmarks.cache_benchmark import run_cache_benchmark
 from coralcon.cohort.report import build_cohort_report
 from coralcon.database import database_status, execute_sql, initialize_database
@@ -136,6 +136,41 @@ def insights(no_ai, portfolio_url):
         console.print(f"  [dim]AI analysis skipped: {data['llm_error']}[/dim]")
 
 
+@cli.command()
+@click.argument("question", nargs=-1, required=True)
+@click.option("--no-ai", is_flag=True, help="Route and narrate deterministically (no LLM)")
+def ask(question, no_ai):
+    """Ask CoralCon a question in plain English; it routes to a Coral query."""
+    q = " ".join(question)
+    fmt.print_header("ASK CORALCON", q)
+
+    with fmt.spinner("Routing your question to a Coral query..."):
+        result = router.answer(q, use_ai=not no_ai)
+
+    method = "AI intent match" if result["classified_by"] == "llm" else "keyword match"
+    console.print(
+        f"\n  [dim]Routed to[/dim] [bright_cyan]{result['query_name']}[/bright_cyan] "
+        f"[dim]({method})[/dim]"
+    )
+
+    console.print(f"\n  [bold bright_green]{result['headline']}[/bold bright_green]")
+
+    if result["narrative_source"] == "llm" and result["narrative"] != result["headline"]:
+        console.print()
+        fmt.print_llm_insights(result["narrative"])
+
+    proof = result.get("proof")
+    if proof:
+        sources = ", ".join(proof.get("sources_used", []))
+        cross = " [bright_magenta](cross-source JOIN)[/bright_magenta]" if proof.get("is_cross_source") else ""
+        console.print(
+            f"\n  [dim]Coral proof:[/dim] {proof.get('query_id', '?')} "
+            f"[dim]·[/dim] {result['row_count']} rows "
+            f"[dim]·[/dim] {sources}{cross}"
+        )
+    console.print()
+
+
 @cli.command("judge-demo")
 @click.option("--sample", "sample_mode", is_flag=True, help="Force deterministic sample mode")
 @click.option("--real", "real_mode", is_flag=True, help="Use real Coral connections")
@@ -195,6 +230,7 @@ def submit_pack():
 def cohort():
     """Cohort analysis commands."""
 
+
 @cli.group()
 def db():
     """Manage the local SQLite CoralCon database."""
@@ -239,7 +275,6 @@ def db_query(sql):
         raise click.ClickException("Only SELECT queries are allowed from the CLI.")
     rows = execute_sql(statement)
     console.print_json(data=rows)
-
 
 
 @cohort.command("analyze")
@@ -510,6 +545,7 @@ def _set_portfolio_url(portfolio_url: str | None) -> None:
 def build_file_message(label: str, path) -> str:
     return f"\n  [bright_green]{label}:[/bright_green] [dim]{path}[/dim]\n"
 
+
 def _proof_table_count(status: dict) -> int:
     proof_tables = (
         "rejection_patterns",
@@ -519,7 +555,6 @@ def _proof_table_count(status: dict) -> int:
         "github_correlation",
     )
     return sum(status["tables"].get(table, 0) for table in proof_tables)
-
 
 
 if __name__ == "__main__":

@@ -4,6 +4,7 @@ const { useState: useAppState, useEffect: useAppEffect, useCallback: useAppCb } 
 
 const TABS = [
   { id: 'dashboard', label: 'My Report', icon: 'layoutDashboard' },
+  { id: 'ask', label: 'Ask', icon: 'search' },
   { id: 'proof', label: 'How It Works', icon: 'database' },
   { id: 'cohort', label: 'Teams', icon: 'users' },
   { id: 'privacy', label: 'Privacy', icon: 'shield' },
@@ -11,6 +12,7 @@ const TABS = [
 
 const TAB_PATHS = {
   dashboard: '/dashboard',
+  ask: '/ask',
   proof: '/proof',
   cohort: '/cohort',
   privacy: '/privacy',
@@ -76,6 +78,7 @@ function CoralConApp() {
   const renderTab = () => {
     switch (activeTab) {
       case 'dashboard': return <DashboardTab tweaks={tweaks} />;
+      case 'ask': return <AskTab tweaks={tweaks} />;
       case 'proof': return <ProofTab tweaks={tweaks} />;
       case 'cohort': return <CohortTab tweaks={tweaks} />;
       case 'privacy': return <PrivacyTab tweaks={tweaks} />;

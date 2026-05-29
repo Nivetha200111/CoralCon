@@ -2,6 +2,7 @@
 
 import os
 from fastapi import FastAPI, Request
+from pydantic import BaseModel
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -17,7 +18,7 @@ from coralcon.queries import (
     timing_analysis,
     followup_tracker,
 )
-from coralcon.agents import recommender
+from coralcon.agents import recommender, router
 from coralcon.cohort.analyzer import analyze_cohort
 from coralcon.portfolio import inspect_portfolio
 from coralcon.proof.report import proof_summary
@@ -67,6 +68,13 @@ async def cohort_page(request: Request):
 
 @app.get("/privacy", response_class=HTMLResponse)
 async def privacy_page(request: Request):
+    return templates.TemplateResponse(
+        request=request, name="index.html", context={"request": request}
+    )
+
+
+@app.get("/ask", response_class=HTMLResponse)
+async def ask_page(request: Request):
     return templates.TemplateResponse(
         request=request, name="index.html", context={"request": request}
     )
@@ -166,6 +174,47 @@ async def api_cohort():
 @app.get("/api/status")
 async def api_status():
     return await run_in_threadpool(check_coral_connection)
+
+
+class AskRequest(BaseModel):
+    question: str
+    use_ai: bool = True
+
+
+@app.post("/api/ask")
+async def api_ask(payload: AskRequest):
+    question = (payload.question or "").strip()
+    if not question:
+        return {"error": "Ask a question about your job search."}
+
+    use_ai = payload.use_ai and bool(os.getenv("ANTHROPIC_API_KEY"))
+    result = await run_in_threadpool(router.answer, question, use_ai)
+
+    raw_proof = result.get("proof") or {}
+    sources = raw_proof.get("sources_used", [])
+    proof = {
+        "query_id": raw_proof.get("query_id"),
+        "sources": sources,
+        "is_cross_source": raw_proof.get("is_cross_source", len(sources) > 1),
+        "rows": raw_proof.get("rows_returned"),
+    } if raw_proof else None
+
+    # The proof table only needs a small, bounded preview of rows.
+    rows = result.get("rows") or []
+    return {
+        "question": result.get("question"),
+        "intentId": result.get("intent_id"),
+        "queryName": result.get("query_name"),
+        "summary": result.get("summary"),
+        "classifiedBy": result.get("classified_by"),
+        "headline": result.get("headline"),
+        "narrative": result.get("narrative"),
+        "narrativeSource": result.get("narrative_source"),
+        "rowCount": result.get("row_count"),
+        "rowsPreview": rows[:8],
+        "proof": proof,
+        "usingSampleData": os.getenv("CORAL_AVAILABLE", "false").lower() != "true",
+    }
 
 
 def _build_dashboard_payload() -> dict:

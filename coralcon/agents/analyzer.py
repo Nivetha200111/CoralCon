@@ -78,6 +78,71 @@ Be blunt. Use exact numbers. No hedging. Format as plain text, one insight per p
     return response.content[0].text
 
 
+def classify_intent(question: str, intents: list[dict]) -> str:
+    """Map a natural-language question to exactly one predefined intent id.
+
+    The LLM only selects from a fixed enum; it never writes SQL. Returns the
+    chosen intent id. Raises if the model returns an unknown id so the caller
+    can fall back to deterministic keyword routing.
+    """
+    client = _get_client()
+
+    catalog = "\n".join(f"- {it['id']}: {it['summary']}" for it in intents)
+    valid_ids = {it["id"] for it in intents}
+
+    prompt = f"""You route a job-seeker's question to ONE career-analysis query.
+
+Available analyses:
+{catalog}
+
+Question: "{question}"
+
+Respond with ONLY the single best id from the list above. No punctuation, no explanation."""
+
+    response = client.messages.create(
+        model=os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-20250514"),
+        max_tokens=16,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    raw = response.content[0].text.strip().lower()
+    for token in raw.replace("`", " ").replace(".", " ").split():
+        if token in valid_ids:
+            return token
+    if raw in valid_ids:
+        return raw
+    raise ValueError(f"Unrecognized intent id from model: {raw!r}")
+
+
+def narrate(question: str, intent_summary: str, rows: list[dict]) -> str:
+    """Narrate an answer from query result rows only.
+
+    The model receives the filtered result rows as JSON and nothing else, so it
+    cannot invent numbers or be steered by raw source text (prompt-injection safe).
+    """
+    client = _get_client()
+
+    prompt = f"""You are a blunt career coach. Answer the user's question using ONLY the data rows below.
+
+Question: "{question}"
+What this data shows: {intent_summary}
+
+DATA ROWS (the only facts you may use):
+{json.dumps(rows[:15], indent=2)}
+
+Rules:
+- 2-3 sentences max. No preamble.
+- Cite exact numbers from the rows. Never invent a number that is not present.
+- End with one specific action.
+- If the rows are empty, say there is not enough data yet and what to log."""
+
+    response = client.messages.create(
+        model=os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-20250514"),
+        max_tokens=220,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    return response.content[0].text.strip()
+
+
 def generate_rejection_decoder(patterns: list[dict]) -> str:
     """Focused analysis on rejection patterns."""
     client = _get_client()
