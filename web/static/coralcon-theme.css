@@ -168,6 +168,17 @@ body {
   letter-spacing: -0.02em;
 }
 .cc-page-subtitle { font-size: 14px; color: var(--cc-text-muted); }
+.cc-mode-badge {
+  margin-left: auto;
+  align-self: center;
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 4px 12px; border-radius: 99px;
+  text-transform: uppercase;
+}
+.cc-mode-badge.sample { background: rgba(251,146,60,0.14); color: var(--cc-orange); border: 1px solid rgba(251,146,60,0.3); }
+.cc-mode-badge.real { background: var(--cc-teal-dim); color: var(--cc-teal); border: 1px solid rgba(32,201,160,0.3); }
+.cc-best-query { box-shadow: var(--cc-glow-gold); }
 
 /* ====== CARDS ====== */
 .cc-card {
@@ -444,7 +455,45 @@ body {
 
 /* Base entrance — no animation, just visible */
 
-/* Scroll-reveal: handled by inline styles in React Reveal component */
+/* Scroll-reveal: fade + slide up, staggered via inline transition-delay */
+.cc-reveal {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.65s var(--cc-ease), transform 0.65s var(--cc-ease);
+  will-change: opacity, transform;
+}
+.cc-reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cc-reveal {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+}
+
+/* Share report card button */
+.cc-share-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  margin-top: var(--cc-sp-3);
+  padding: 9px 16px;
+  font-family: inherit; font-size: 13px; font-weight: 600;
+  color: var(--cc-text-primary);
+  background: var(--cc-bg-card);
+  border: 1px solid var(--cc-border);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.2s var(--cc-ease);
+}
+.cc-share-btn:hover {
+  border-color: var(--cc-gold);
+  color: var(--cc-gold);
+  transform: translateY(-2px);
+  box-shadow: var(--cc-shadow-sm), var(--cc-glow-gold);
+}
+.cc-share-btn:active { transform: translateY(0); }
 
 /* Tab transition */
 .cc-tab-enter { animation: fadeSlideIn 0.4s var(--cc-ease) both; }
@@ -584,12 +633,36 @@ body {
 }
 
 .cc-hero-kicker {
-  margin-bottom: var(--cc-sp-2);
+  margin-bottom: var(--cc-sp-3);
   color: var(--cc-gold);
-  font-size: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  font-style: italic;
+  letter-spacing: 0.01em;
+}
+
+.cc-hero-stat {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+  flex-shrink: 0;
+}
+.cc-hero-stat-num {
+  font-family: var(--cc-font-display);
+  font-size: 56px;
   font-weight: 700;
+  line-height: 1;
+  color: var(--cc-gold);
+}
+.cc-hero-stat-label {
+  font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
+  color: var(--cc-text-muted);
+  margin-top: var(--cc-sp-2);
 }
 
 .cc-hero-sources {

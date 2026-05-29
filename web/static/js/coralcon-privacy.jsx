@@ -5,7 +5,7 @@ function PrivacyTab({ tweaks }) {
 
   const checks = [
     { title: 'Coral Runs Locally', desc: 'All Coral SQL queries execute on your machine. No data leaves your environment for query processing.', icon: 'server' },
-    { title: 'Local Data Retrieval', desc: 'Raw GitHub, Notion, and LinkedIn data is queried locally through Coral SQL. API calls go directly from your machine to each platform.', icon: 'database' },
+    { title: 'Local Data Retrieval', desc: 'Raw GitHub, Google Sheets, and LinkedIn data is queried locally through Coral SQL. API calls go directly from your machine to each platform.', icon: 'database' },
     { title: 'LLM Receives Summaries Only', desc: 'When AI analysis is enabled, only summarized query results are sent to the configured LLM provider — never raw application data, credentials, or personal identifiers.', icon: 'eye' },
     { title: 'No LinkedIn Scraping', desc: 'LinkedIn data comes from your own GDPR data export (Settings → Data Privacy → Get a copy of your data). No scraping, no unauthorized access.', icon: 'shield' },
     { title: 'Credential Security', desc: 'API keys and tokens are read from environment variables or .env files. Never hardcoded, never logged, never transmitted.', icon: 'lock' },
@@ -66,7 +66,7 @@ function PrivacyTab({ tweaks }) {
             </div>
             <div className="cc-arch-node" style={{ minWidth: 100 }}>
               <CCIcon name="fileText" size={16} style={{ display: 'inline', verticalAlign: '-3px', marginRight: 4 }} />
-              Notion API
+              Google Sheets API
             </div>
             <div className="cc-arch-node" style={{ minWidth: 100 }}>
               <CCIcon name="link" size={16} style={{ display: 'inline', verticalAlign: '-3px', marginRight: 4 }} />

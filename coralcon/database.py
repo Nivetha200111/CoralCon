@@ -59,16 +59,15 @@ def initialize_database(
 def run_database_query(sql: str) -> list[dict]:
     """Run a CoralCon query against local SQLite-backed tables."""
     ensure_database()
-    # sheets.applications is the primary tracker; alias to the shared routing.
-    sql_lower = sql.lower().replace("sheets.applications", "notion.applications")
+    sql_lower = sql.lower()
 
-    if "notion.applications" in sql_lower and "github.activity" in sql_lower:
+    if "sheets.applications" in sql_lower and "github.activity" in sql_lower:
         return _select_all("github_correlation", order_by="applied_date DESC")
     if "followup" in sql_lower or "days_waiting" in sql_lower or "datediff" in sql_lower:
         return _select_all("followup_queue", order_by="days_waiting ASC")
     if "skill_gap" in sql_lower or ("required_skills" in sql_lower and "linkedin" in sql_lower):
         return _select_all("skill_gaps", order_by="times_required DESC")
-    if "notion.applications" in sql_lower and "group by" in sql_lower and "role_title" in sql_lower:
+    if "sheets.applications" in sql_lower and "group by" in sql_lower and "role_title" in sql_lower:
         return _select_all("rejection_patterns", order_by="rejection_rate DESC")
     if "timing" in sql_lower or "days_to_apply" in sql_lower or "timing_bucket" in sql_lower:
         return _select_all(
@@ -82,7 +81,7 @@ def run_database_query(sql: str) -> list[dict]:
                 "ELSE 5 END"
             ),
         )
-    if "notion.applications" in sql_lower:
+    if "sheets.applications" in sql_lower:
         return fetch_applications()
     if "linkedin.profile" in sql_lower:
         return _select_all("linkedin_profile", limit=1)

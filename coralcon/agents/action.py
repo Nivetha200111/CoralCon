@@ -1,33 +1,16 @@
-"""Action agent: converts insights into Notion-ready tasks."""
+"""Action agent: converts insights into local action tasks."""
 
 from datetime import date, timedelta
-
-from coralcon.notion.client import NotionWriteClient
 
 
 class ActionAgent:
     """Create or preview prioritized action tasks."""
 
-    def __init__(self, notion_client: NotionWriteClient | None = None):
-        self.notion = notion_client or NotionWriteClient()
+    def __init__(self):
+        pass
 
     def create_tasks(self, insights: dict, dry_run: bool | None = None) -> list[dict]:
-        tasks = self._build_tasks(insights)
-        should_write = self.notion.is_configured("actions") if dry_run is None else not dry_run
-
-        if not should_write:
-            return tasks
-
-        for task in tasks:
-            try:
-                result = self.notion.create_action_task(task)
-                task["created"] = True
-                task["notion_id"] = result.get("id")
-                task["url"] = result.get("url")
-            except Exception as exc:
-                task["created"] = False
-                task["error"] = str(exc)
-        return tasks
+        return self._build_tasks(insights)
 
     def _build_tasks(self, insights: dict) -> list[dict]:
         tasks = []

@@ -51,7 +51,7 @@ LIMIT 10;
 SELECT required.skill, COUNT(*) AS times_required
 FROM (
   SELECT UNNEST(required_skills) AS skill
-  FROM notion.applications
+  FROM sheets.applications
   WHERE status = 'rejected'
 ) required
 LEFT JOIN linkedin.skills l ON l.name = required.skill

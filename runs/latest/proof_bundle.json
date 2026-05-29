@@ -1,0 +1,202 @@
+{
+  "summary": {
+    "total_queries": 11,
+    "cross_source_joins": 4,
+    "cache_hit_rate": 18.2,
+    "total_rows": 130,
+    "total_execution_time_ms": 0.89,
+    "sources_used": [
+      "github.activity",
+      "github.profile",
+      "linkedin.profile",
+      "linkedin.skills",
+      "notion.applications"
+    ],
+    "mode": "sample"
+  },
+  "queries": [
+    {
+      "query_id": "q_001",
+      "query_name": "applications",
+      "sql": "SELECT id, company, role_title, applied_date, status, required_skills, salary_range, source FROM notion.applications ORDER BY applied_date DESC",
+      "sources_used": [
+        "notion.applications"
+      ],
+      "is_cross_source": false,
+      "rows_returned": 8,
+      "execution_ms": 0.13,
+      "execution_time_ms": 0.13,
+      "used_cache": false,
+      "cache_hit": false,
+      "mode": "sample",
+      "timestamp": "2026-05-29T00:01:26"
+    },
+    {
+      "query_id": "q_002",
+      "query_name": "github_activity",
+      "sql": "SELECT week, commits_count, active_repos, languages, stars_earned FROM github.activity ORDER BY week DESC",
+      "sources_used": [
+        "github.activity"
+      ],
+      "is_cross_source": false,
+      "rows_returned": 20,
+      "execution_ms": 0.1,
+      "execution_time_ms": 0.1,
+      "used_cache": false,
+      "cache_hit": false,
+      "mode": "sample",
+      "timestamp": "2026-05-29T00:01:26"
+    },
+    {
+      "query_id": "q_003",
+      "query_name": "linkedin_profile",
+      "sql": "SELECT headline, summary, location FROM linkedin.profile LIMIT 1",
+      "sources_used": [
+        "linkedin.profile"
+      ],
+      "is_cross_source": false,
+      "rows_returned": 8,
+      "execution_ms": 0.08,
+      "execution_time_ms": 0.08,
+      "used_cache": false,
+      "cache_hit": false,
+      "mode": "sample",
+      "timestamp": "2026-05-29T00:01:26"
+    },
+    {
+      "query_id": "q_004",
+      "query_name": "linkedin_skills",
+      "sql": "SELECT name, endorsements FROM linkedin.skills ORDER BY endorsements DESC",
+      "sources_used": [
+        "linkedin.skills"
+      ],
+      "is_cross_source": false,
+      "rows_returned": 8,
+      "execution_ms": 0.09,
+      "execution_time_ms": 0.09,
+      "used_cache": false,
+      "cache_hit": false,
+      "mode": "sample",
+      "timestamp": "2026-05-29T00:01:26"
+    },
+    {
+      "query_id": "q_005",
+      "query_name": "rejection_patterns",
+      "sql": "SELECT n.role_title, COUNT(*) as total, SUM(CASE WHEN n.status = 'rejected' THEN 1 ELSE 0 END) as rejected, SUM(CASE WHEN n.status = 'ghosted' THEN 1 ELSE 0 END) as ghosted, SUM(CASE WHEN n.status = 'interviewing' THEN 1 ELSE 0 END) as interviewed, SUM(CASE WHEN n.status = 'offer' THEN 1 ELSE 0 END) as offers, ROUND( SUM(CASE WHEN n.status = 'rejected' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1 ) as rejection_rate, ROUND( SUM(CASE WHEN n.status = 'ghosted' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1 ) as ghost_rate, ROUND( (SUM(CASE WHEN n.status IN ('interviewing', 'offer') THEN 1 ELSE 0 END)) * 100.0 / COUNT(*), 1 ) as response_rate FROM notion.applications n GROUP BY n.role_title ORDER BY rejection_rate DESC",
+      "sources_used": [
+        "notion.applications"
+      ],
+      "is_cross_source": false,
+      "rows_returned": 6,
+      "execution_ms": 0.09,
+      "execution_time_ms": 0.09,
+      "used_cache": false,
+      "cache_hit": false,
+      "mode": "sample",
+      "timestamp": "2026-05-29T00:01:26"
+    },
+    {
+      "query_id": "q_006",
+      "query_name": "github_activity_correlation",
+      "sql": "SELECT n.company, n.applied_date, n.status, n.role_title, g.commits_count, g.active_repos, g.languages FROM notion.applications n JOIN github.activity g ON g.week = date_trunc('week', n.applied_date) WHERE n.status IN ('rejected', 'ghosted', 'interviewing', 'offer') ORDER BY n.applied_date DESC",
+      "sources_used": [
+        "github.activity",
+        "notion.applications"
+      ],
+      "is_cross_source": true,
+      "rows_returned": 26,
+      "execution_ms": 0.09,
+      "execution_time_ms": 0.09,
+      "used_cache": false,
+      "cache_hit": false,
+      "mode": "sample",
+      "timestamp": "2026-05-29T00:01:26"
+    },
+    {
+      "query_id": "q_007",
+      "query_name": "skill_gap_detection",
+      "sql": "SELECT skill, COUNT(*) as times_required, MAX(CASE WHEN in_github = true THEN 1 ELSE 0 END) as in_github, MAX(CASE WHEN in_linkedin = true THEN 1 ELSE 0 END) as in_linkedin FROM ( SELECT skill_name as skill, (g.languages LIKE '%' || skill_name || '%') as in_github, (l.name LIKE '%' || skill_name || '%') as in_linkedin FROM ( SELECT UNNEST(n.required_skills) as skill_name FROM notion.applications n WHERE n.status = 'rejected' ) skills JOIN github.profile g JOIN linkedin.skills l ) sub GROUP BY skill ORDER BY times_required DESC LIMIT 15",
+      "sources_used": [
+        "github.profile",
+        "linkedin.skills",
+        "notion.applications"
+      ],
+      "is_cross_source": true,
+      "rows_returned": 12,
+      "execution_ms": 0.07,
+      "execution_time_ms": 0.07,
+      "used_cache": false,
+      "cache_hit": false,
+      "mode": "sample",
+      "timestamp": "2026-05-29T00:01:26"
+    },
+    {
+      "query_id": "q_008",
+      "query_name": "timing_analysis",
+      "sql": "SELECT CASE WHEN days_to_apply <= 1 THEN 'same_day' WHEN days_to_apply <= 2 THEN '1-2_days' WHEN days_to_apply <= 7 THEN '3-7_days' WHEN days_to_apply <= 14 THEN '1-2_weeks' ELSE '2_weeks_plus' END as timing_bucket, COUNT(*) as total, ROUND( SUM(CASE WHEN status IN ('interviewing', 'offer') THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1 ) as response_rate, ROUND( SUM(CASE WHEN status = 'ghosted' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1 ) as ghost_rate FROM notion.applications GROUP BY timing_bucket ORDER BY CASE timing_bucket WHEN 'same_day' THEN 1 WHEN '1-2_days' THEN 2 WHEN '3-7_days' THEN 3 WHEN '1-2_weeks' THEN 4 ELSE 5 END",
+      "sources_used": [
+        "notion.applications"
+      ],
+      "is_cross_source": false,
+      "rows_returned": 6,
+      "execution_ms": 0.12,
+      "execution_time_ms": 0.12,
+      "used_cache": false,
+      "cache_hit": false,
+      "mode": "sample",
+      "timestamp": "2026-05-29T00:01:26"
+    },
+    {
+      "query_id": "q_009",
+      "query_name": "followup_tracker",
+      "sql": "SELECT n.company, n.role_title, n.applied_date, DATEDIFF('day', n.applied_date, CURRENT_DATE) as days_waiting, CASE WHEN DATEDIFF('day', n.applied_date, CURRENT_DATE) BETWEEN 7 AND 14 THEN 'hot' WHEN DATEDIFF('day', n.applied_date, CURRENT_DATE) BETWEEN 15 AND 21 THEN 'warm' ELSE 'cold' END as priority, CASE WHEN DATEDIFF('day', n.applied_date, CURRENT_DATE) BETWEEN 7 AND 14 THEN 'Send follow-up email now (22% success rate at day 10)' WHEN DATEDIFF('day', n.applied_date, CURRENT_DATE) BETWEEN 15 AND 21 THEN 'Last chance follow-up (8% success rate)' ELSE 'Move on \u2014 mark as ghosted' END as recommended_action FROM notion.applications n WHERE n.status = 'applied' AND DATEDIFF('day', n.applied_date, CURRENT_DATE) >= 7 ORDER BY days_waiting ASC",
+      "sources_used": [
+        "notion.applications"
+      ],
+      "is_cross_source": false,
+      "rows_returned": 12,
+      "execution_ms": 0.12,
+      "execution_time_ms": 0.12,
+      "used_cache": false,
+      "cache_hit": false,
+      "mode": "sample",
+      "timestamp": "2026-05-29T00:01:26"
+    },
+    {
+      "query_id": "q_010",
+      "query_name": "skill_gap_detection",
+      "sql": "SELECT skill, COUNT(*) as times_required, MAX(CASE WHEN in_github = true THEN 1 ELSE 0 END) as in_github, MAX(CASE WHEN in_linkedin = true THEN 1 ELSE 0 END) as in_linkedin FROM ( SELECT skill_name as skill, (g.languages LIKE '%' || skill_name || '%') as in_github, (l.name LIKE '%' || skill_name || '%') as in_linkedin FROM ( SELECT UNNEST(n.required_skills) as skill_name FROM notion.applications n WHERE n.status = 'rejected' ) skills JOIN github.profile g JOIN linkedin.skills l ) sub GROUP BY skill ORDER BY times_required DESC LIMIT 15",
+      "sources_used": [
+        "github.profile",
+        "linkedin.skills",
+        "notion.applications"
+      ],
+      "is_cross_source": true,
+      "rows_returned": 12,
+      "execution_ms": 0.0,
+      "execution_time_ms": 0.0,
+      "used_cache": true,
+      "cache_hit": true,
+      "mode": "sample",
+      "timestamp": "2026-05-29T00:01:26"
+    },
+    {
+      "query_id": "q_011",
+      "query_name": "skill_gap_detection",
+      "sql": "SELECT skill, COUNT(*) as times_required, MAX(CASE WHEN in_github = true THEN 1 ELSE 0 END) as in_github, MAX(CASE WHEN in_linkedin = true THEN 1 ELSE 0 END) as in_linkedin FROM ( SELECT skill_name as skill, (g.languages LIKE '%' || skill_name || '%') as in_github, (l.name LIKE '%' || skill_name || '%') as in_linkedin FROM ( SELECT UNNEST(n.required_skills) as skill_name FROM notion.applications n WHERE n.status = 'rejected' ) skills JOIN github.profile g JOIN linkedin.skills l ) sub GROUP BY skill ORDER BY times_required DESC LIMIT 15",
+      "sources_used": [
+        "github.profile",
+        "linkedin.skills",
+        "notion.applications"
+      ],
+      "is_cross_source": true,
+      "rows_returned": 12,
+      "execution_ms": 0.0,
+      "execution_time_ms": 0.0,
+      "used_cache": true,
+      "cache_hit": true,
+      "mode": "sample",
+      "timestamp": "2026-05-29T00:01:26"
+    }
+  ]
+}

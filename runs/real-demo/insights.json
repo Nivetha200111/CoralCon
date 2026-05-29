@@ -1,0 +1,166 @@
+{
+  "total_applications": 3,
+  "response_rate": 0.0,
+  "interview_rate": 0.0,
+  "offer_rate": 0.0,
+  "rejection_patterns": [
+    {
+      "role_title": "Software Engineer",
+      "total": 1,
+      "rejected": 0,
+      "ghosted": 0,
+      "interviewed": 0,
+      "offers": 0,
+      "rejection_rate": 0.0,
+      "ghost_rate": 0.0,
+      "response_rate": 0.0
+    },
+    {
+      "role_title": "Associate Software Engineer",
+      "total": 1,
+      "rejected": 0,
+      "ghosted": 0,
+      "interviewed": 0,
+      "offers": 0,
+      "rejection_rate": 0.0,
+      "ghost_rate": 0.0,
+      "response_rate": 0.0
+    },
+    {
+      "role_title": "Backend Engineer",
+      "total": 1,
+      "rejected": 0,
+      "ghosted": 0,
+      "interviewed": 0,
+      "offers": 0,
+      "rejection_rate": 0.0,
+      "ghost_rate": 0.0,
+      "response_rate": 0.0
+    }
+  ],
+  "timing_insights": [
+    {
+      "timing_bucket": "unknown",
+      "total": 3,
+      "response_rate": 0.0,
+      "ghost_rate": 0.0
+    }
+  ],
+  "skill_gaps": [
+    {
+      "skill": "JavaScript",
+      "times_required": 2,
+      "in_github": false,
+      "in_linkedin": false,
+      "priority": "high",
+      "in_portfolio": false
+    },
+    {
+      "skill": "React",
+      "times_required": 1,
+      "in_github": false,
+      "in_linkedin": false,
+      "priority": "medium",
+      "in_portfolio": false
+    },
+    {
+      "skill": "System Design",
+      "times_required": 1,
+      "in_github": false,
+      "in_linkedin": false,
+      "priority": "medium",
+      "in_portfolio": false
+    },
+    {
+      "skill": "ServiceNow",
+      "times_required": 1,
+      "in_github": false,
+      "in_linkedin": false,
+      "priority": "medium",
+      "in_portfolio": false
+    },
+    {
+      "skill": "GlideRecord",
+      "times_required": 1,
+      "in_github": false,
+      "in_linkedin": false,
+      "priority": "medium",
+      "in_portfolio": false
+    },
+    {
+      "skill": "Java",
+      "times_required": 1,
+      "in_github": false,
+      "in_linkedin": false,
+      "priority": "medium",
+      "in_portfolio": false
+    },
+    {
+      "skill": "REST APIs",
+      "times_required": 1,
+      "in_github": false,
+      "in_linkedin": false,
+      "priority": "medium",
+      "in_portfolio": false
+    },
+    {
+      "skill": "Distributed Systems",
+      "times_required": 1,
+      "in_github": false,
+      "in_linkedin": false,
+      "priority": "medium",
+      "in_portfolio": false
+    }
+  ],
+  "github_correlation": {
+    "ghost_rate_active_weeks": 0.0,
+    "ghost_rate_inactive_weeks": 0,
+    "top_language": "N/A",
+    "total_repos": 2
+  },
+  "followup_priorities": [],
+  "action_items": [
+    "Add PORTFOLIO_URL or pass --portfolio-url so CoralCon can inspect public proof-of-work."
+  ],
+  "portfolio": {
+    "url": null,
+    "configured": false,
+    "reachable": false,
+    "status_code": null,
+    "title": "",
+    "description": "",
+    "detected_skills": [],
+    "project_links": [],
+    "github_links": [],
+    "external_links": [],
+    "text_sample": "",
+    "error": "Set PORTFOLIO_URL or pass --portfolio-url."
+  },
+  "overall_health_score": 45,
+  "evidence_insights": [
+    {
+      "id": "insight_001",
+      "title": "Software Engineer rejection pattern",
+      "severity": "medium",
+      "claim": "Software Engineer roles have a 0.0% rejection rate.",
+      "evidence": {
+        "query_id": "q_005",
+        "rows_used": 1,
+        "sources": [
+          "notion.applications"
+        ],
+        "supporting_numbers": {
+          "applications": 1,
+          "rejections": 0,
+          "ghosted": 0,
+          "rejection_rate": 0.0
+        }
+      },
+      "root_cause": "The role category is currently outperforming the visible proof-of-work on the profile.",
+      "recommended_action": "Pause cold applications to Software Engineer roles and ship one targeted proof-of-work project.",
+      "expected_impact": "Improve profile-fit before adding more applications to this bucket.",
+      "confidence": 0.84
+    }
+  ],
+  "llm_insights": null
+}

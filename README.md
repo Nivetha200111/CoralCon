@@ -172,8 +172,8 @@ python -m coralcon.cli submit-pack
 
 **Recon Agent** — queries all three sources through Coral SQL, collects raw data.
 **Analyst Agent** — generates deterministic evidence-backed insights with rule-based analysis. Optionally enriches with Claude API narrative.
-**Dashboard Agent** — writes structured results to Notion dashboard (when configured).
-**Action Agent** — creates prioritized Notion tasks from insights.
+**Dashboard Agent** — writes structured results to local dashboard (when configured).
+**Action Agent** — creates prioritized local action tasks from insights.
 
 All *analysis* goes through Coral SQL — the agent pipeline never queries sources
 directly. The only direct API calls are the Gmail extractor (reading rejection
@@ -289,7 +289,7 @@ python -m coralcon.cli db init --reset               # Create local SQLite DB
 python -m coralcon.cli db status                     # Show DB table counts
 python -m coralcon.cli analyze --no-ai --dry-run    # Full pipeline
 python -m coralcon.cli recon                         # Data collection only
-python -m coralcon.cli insights --no-ai              # Analysis without Notion writes
+python -m coralcon.cli insights --no-ai              # Analysis without local dashboard outputs
 python -m coralcon.cli rejections                    # Rejection patterns
 python -m coralcon.cli gaps                          # Skill gap analysis
 python -m coralcon.cli timing                        # Application timing patterns

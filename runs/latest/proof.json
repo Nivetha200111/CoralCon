@@ -8,9 +8,12 @@
     ],
     "is_cross_source": false,
     "rows_returned": 8,
-    "execution_ms": 1.32,
+    "execution_ms": 0.75,
+    "execution_time_ms": 0.75,
     "used_cache": false,
-    "timestamp": "2026-05-29T19:02:19"
+    "cache_hit": false,
+    "mode": "sample",
+    "timestamp": "2026-05-30T00:02:02"
   },
   {
     "query_id": "q_002",
@@ -21,9 +24,12 @@
     ],
     "is_cross_source": false,
     "rows_returned": 20,
-    "execution_ms": 2.07,
+    "execution_ms": 0.45,
+    "execution_time_ms": 0.45,
     "used_cache": false,
-    "timestamp": "2026-05-29T19:02:19"
+    "cache_hit": false,
+    "mode": "sample",
+    "timestamp": "2026-05-30T00:02:02"
   },
   {
     "query_id": "q_003",
@@ -34,9 +40,12 @@
     ],
     "is_cross_source": false,
     "rows_returned": 1,
-    "execution_ms": 1.91,
+    "execution_ms": 0.51,
+    "execution_time_ms": 0.51,
     "used_cache": false,
-    "timestamp": "2026-05-29T19:02:19"
+    "cache_hit": false,
+    "mode": "sample",
+    "timestamp": "2026-05-30T00:02:02"
   },
   {
     "query_id": "q_004",
@@ -47,9 +56,12 @@
     ],
     "is_cross_source": false,
     "rows_returned": 8,
-    "execution_ms": 0.96,
+    "execution_ms": 1.1,
+    "execution_time_ms": 1.1,
     "used_cache": false,
-    "timestamp": "2026-05-29T19:02:19"
+    "cache_hit": false,
+    "mode": "sample",
+    "timestamp": "2026-05-30T00:02:02"
   },
   {
     "query_id": "q_005",
@@ -60,9 +72,12 @@
     ],
     "is_cross_source": false,
     "rows_returned": 6,
-    "execution_ms": 1.09,
+    "execution_ms": 1.86,
+    "execution_time_ms": 1.86,
     "used_cache": false,
-    "timestamp": "2026-05-29T19:02:19"
+    "cache_hit": false,
+    "mode": "sample",
+    "timestamp": "2026-05-30T00:02:02"
   },
   {
     "query_id": "q_006",
@@ -74,9 +89,12 @@
     ],
     "is_cross_source": true,
     "rows_returned": 26,
-    "execution_ms": 1.19,
+    "execution_ms": 1.32,
+    "execution_time_ms": 1.32,
     "used_cache": false,
-    "timestamp": "2026-05-29T19:02:19"
+    "cache_hit": false,
+    "mode": "sample",
+    "timestamp": "2026-05-30T00:02:02"
   },
   {
     "query_id": "q_007",
@@ -89,9 +107,12 @@
     ],
     "is_cross_source": true,
     "rows_returned": 12,
-    "execution_ms": 1.46,
+    "execution_ms": 0.48,
+    "execution_time_ms": 0.48,
     "used_cache": false,
-    "timestamp": "2026-05-29T19:02:19"
+    "cache_hit": false,
+    "mode": "sample",
+    "timestamp": "2026-05-30T00:02:02"
   },
   {
     "query_id": "q_008",
@@ -102,9 +123,12 @@
     ],
     "is_cross_source": false,
     "rows_returned": 5,
-    "execution_ms": 0.99,
+    "execution_ms": 0.44,
+    "execution_time_ms": 0.44,
     "used_cache": false,
-    "timestamp": "2026-05-29T19:02:19"
+    "cache_hit": false,
+    "mode": "sample",
+    "timestamp": "2026-05-30T00:02:02"
   },
   {
     "query_id": "q_009",
@@ -115,9 +139,12 @@
     ],
     "is_cross_source": false,
     "rows_returned": 12,
-    "execution_ms": 2.58,
+    "execution_ms": 0.47,
+    "execution_time_ms": 0.47,
     "used_cache": false,
-    "timestamp": "2026-05-29T19:02:19"
+    "cache_hit": false,
+    "mode": "sample",
+    "timestamp": "2026-05-30T00:02:02"
   },
   {
     "query_id": "q_010",
@@ -128,8 +155,11 @@
     ],
     "is_cross_source": false,
     "rows_returned": 6,
-    "execution_ms": 1.08,
+    "execution_ms": 0.31,
+    "execution_time_ms": 0.31,
     "used_cache": false,
-    "timestamp": "2026-05-29T19:02:19"
+    "cache_hit": false,
+    "mode": "sample",
+    "timestamp": "2026-05-30T00:02:02"
   }
 ]

@@ -136,8 +136,13 @@ class AnalystAgent:
 
     @staticmethod
     def _write_run_artifacts(insights: dict) -> None:
-        run_dir = Path("runs") / "latest"
-        run_dir.mkdir(parents=True, exist_ok=True)
+        from coralcon.paths import runs_dir
+
+        run_dir = runs_dir()
+        try:
+            run_dir.mkdir(parents=True, exist_ok=True)
+        except OSError:
+            return
         (run_dir / "insights.json").write_text(json.dumps(insights, indent=2), encoding="utf-8")
         (run_dir / "proof.json").write_text(json.dumps(get_query_log(), indent=2), encoding="utf-8")
         report = [

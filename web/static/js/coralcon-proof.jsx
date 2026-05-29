@@ -4,7 +4,7 @@
 function HighlightedSQL({ sql }) {
   const keywords = /\b(SELECT|FROM|JOIN|WHERE|ON|GROUP BY|ORDER BY|HAVING|AND|OR|NOT|AS|IN|CASE|WHEN|THEN|ELSE|END|DESC|ASC|LIMIT|COUNT|SUM|ROUND|AVG|MAX|MIN|DISTINCT|INTERVAL|DATEDIFF|DATE_SUB|NOW)\b/gi;
   const strings = /'[^']*'/g;
-  const tables = /\b(notion\.\w+|github\.\w+|linkedin\.\w+)\b/g;
+  const tables = /\b(sheets\.\w+|github\.\w+|linkedin\.\w+)\b/g;
   const functions = /\b(date_trunc|ROUND|COUNT|SUM|AVG|DATEDIFF|DATE_SUB|NOW)\b/gi;
 
   let html = sql
@@ -85,16 +85,24 @@ function ProofTab({ tweaks }) {
   const allSources = [...new Set(queries.flatMap(q => q.sources))];
   const avgExec = Math.round(queries.reduce((s, q) => s + q.executionMs, 0) / queries.length);
   const cachedCount = queries.filter(q => q.cached).length;
+  const hitRate = liveProof && liveProof.cache_hit_rate != null
+    ? liveProof.cache_hit_rate
+    : (queries.length ? Math.round(cachedCount * 100 / queries.length) : 0);
+  const mode = liveProof ? liveProof.mode : (data.usingSampleData ? 'sample' : 'real');
+  const bestCross = queries.filter(q => q.crossSource).sort((a, b) => b.sources.length - a.sources.length || b.rows - a.rows)[0];
 
   return (
     <div>
       <div className="cc-page-header">
         <h1 className="cc-page-title">How It Works</h1>
         <span className="cc-page-subtitle">Every data query CoralCon ran, with sources and results</span>
+        <span className={`cc-mode-badge ${mode === 'real' ? 'real' : 'sample'}`}>
+          {mode === 'real' ? 'LIVE CORAL' : 'SAMPLE MODE'}
+        </span>
       </div>
       <div className="cc-card" style={{ marginBottom: 'var(--cc-sp-6)', padding: 'var(--cc-sp-5)' }}>
         <p style={{ fontSize: 14, color: 'var(--cc-text-secondary)', lineHeight: 1.7 }}>
-          CoralCon uses <strong style={{ color: 'var(--cc-text-primary)' }}>Coral SQL</strong> to query your GitHub, Notion, and LinkedIn data as if they were database tables.
+          CoralCon uses <strong style={{ color: 'var(--cc-text-primary)' }}>Coral SQL</strong> to query your GitHub, Google Sheets, and LinkedIn data as if they were database tables.
           Instead of writing three separate API integrations, Coral lets us write one SQL query that joins data across all sources.
           Every query below is real — you can see exactly what data was pulled and how conclusions were reached.
         </p>
@@ -111,7 +119,7 @@ function ProofTab({ tweaks }) {
         <div className="cc-stat-card">
           <div className="cc-stat-label">Data Sources</div>
           <div className="cc-stat-value" style={{ color: 'var(--cc-teal)' }}><AnimCounter target={allSources.length} /></div>
-          <div style={{ fontSize: 12, color: 'var(--cc-text-muted)' }}>GitHub + Notion + LinkedIn</div>
+          <div style={{ fontSize: 12, color: 'var(--cc-text-muted)' }}>GitHub + Sheets + LinkedIn</div>
         </div>
         <div className="cc-stat-card">
           <div className="cc-stat-label">Rows Returned</div>
@@ -119,14 +127,52 @@ function ProofTab({ tweaks }) {
           <div style={{ fontSize: 12, color: 'var(--cc-text-muted)' }}>avg {avgExec}ms / query</div>
         </div>
         <div className="cc-stat-card">
-          <div className="cc-stat-label">Cached Queries</div>
-          <div className="cc-stat-value" style={{ color: 'var(--cc-orange)' }}><AnimCounter target={cachedCount} /></div>
+          <div className="cc-stat-label">Cache Hit Rate</div>
+          <div className="cc-stat-value" style={{ color: 'var(--cc-orange)' }}><AnimCounter target={hitRate} suffix="%" /></div>
           <div style={{ fontSize: 12, color: 'var(--cc-text-muted)' }}>
-            {liveProof ? (liveProof.mode === 'sample' ? 'deterministic sample mode' : 'live Coral mode') : (data.usingSampleData ? 'deterministic sample mode' : 'live Coral mode')}
+            {cachedCount} of {queries.length} queries cached
           </div>
         </div>
       </div>
       </Reveal>
+
+      {/* Best Cross-Source Query — the headline proof */}
+      {bestCross && (
+        <Reveal delay={40}>
+        <div className="cc-section-title">Best Cross-Source Query</div>
+        <div className="cc-query-card cc-best-query" style={{ marginBottom: 'var(--cc-sp-6)', borderColor: accent }}>
+          <div className="cc-query-header">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--cc-sp-3)' }}>
+              <CCIcon name="zap" size={16} style={{ color: accent }} />
+              <span className="cc-query-name">{bestCross.name}</span>
+            </div>
+            <div className="cc-query-badges">
+              <span className="cc-badge-cross">{bestCross.sources.length} sources joined</span>
+              {bestCross.cached && <span className="cc-badge-cross cc-badge-cached">Cached</span>}
+            </div>
+          </div>
+          <HighlightedSQL sql={bestCross.sql} />
+          <div className="cc-query-meta">
+            <div className="cc-query-meta-item">
+              <CCIcon name="layers" size={14} />
+              <span>Sources: <strong>{bestCross.sources.join(', ')}</strong></span>
+            </div>
+            <div className="cc-query-meta-item">
+              <CCIcon name="clock" size={14} />
+              <span>Execution: <strong>{bestCross.executionMs}ms</strong></span>
+            </div>
+            <div className="cc-query-meta-item">
+              <CCIcon name="database" size={14} />
+              <span>Rows: <strong>{bestCross.rows}</strong></span>
+            </div>
+          </div>
+          <p style={{ fontSize: 13, color: 'var(--cc-text-muted)', marginTop: 'var(--cc-sp-3)' }}>
+            One SQL statement joins {bestCross.sources.length} sources. Without Coral this would need
+            {' '}{bestCross.sources.length} separate API integrations and custom correlation logic.
+          </p>
+        </div>
+        </Reveal>
+      )}
 
       {/* Sources Used */}
       <Reveal delay={80}>
@@ -134,7 +180,7 @@ function ProofTab({ tweaks }) {
       <div style={{ display: 'flex', gap: 'var(--cc-sp-3)', flexWrap: 'wrap', marginBottom: 'var(--cc-sp-6)' }}>
         {allSources.map(src => {
           const platform = src.split('.')[0];
-          const icon = platform === 'github' ? 'gitBranch' : platform === 'notion' ? 'fileText' : 'link';
+          const icon = platform === 'github' ? 'gitBranch' : platform === 'sheets' ? 'database' : 'link';
           return (
             <span key={src} className="cc-source-pill" style={{ fontSize: 13 }}>
               <CCIcon name={icon} size={14} /> {src}
@@ -193,7 +239,7 @@ function ProofTab({ tweaks }) {
             </p>
             <p style={{ fontSize: 14, color: 'var(--cc-text-secondary)', lineHeight: 1.7 }}>
               The {crossSourceCount} cross-source JOINs above are what make evidence-backed insights
-              possible. Joining <code>notion.applications</code> with <code>github.activity</code> and{' '}
+              possible. Joining <code>sheets.applications</code> with <code>github.activity</code> and{' '}
               <code>linkedin.skills</code> proves whether your profile signals match role requirements.
             </p>
           </div>

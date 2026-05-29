@@ -23,7 +23,7 @@ correlation logic. With Coral, the agent asks one SQL question across all source
 - **Sources queried:** github.activity, github.profile, linkedin.profile, linkedin.skills, sheets.applications
 - **Best query:** skill_gap_detection
 - **Best query rows:** 12
-- **Best query time:** 1.46ms
+- **Best query time:** 0.48ms
 - **Cached queries:** 0
 - **Mode:** sample
 
@@ -107,7 +107,7 @@ CLI/Web -> Orchestrator -> Recon Agent -> Coral SQL -> GitHub + Sheets + LinkedI
 
 - Sources: github.activity, sheets.applications
 - Rows: 26
-- Execution: 1.19ms
+- Execution: 1.32ms
 - Cached: no
 
 ```sql
@@ -118,7 +118,7 @@ SELECT n.company, n.applied_date, n.status, n.role_title, g.commits_count, g.act
 
 - Sources: github.profile, linkedin.skills, sheets.applications
 - Rows: 12
-- Execution: 1.46ms
+- Execution: 0.48ms
 - Cached: no
 
 ```sql

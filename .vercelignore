@@ -1,0 +1,14 @@
+.venv
+.git
+.pytest_cache
+.playwright-mcp
+.coral-config
+__pycache__
+**/__pycache__
+*.pyc
+*.png
+tests
+submission/screenshots
+runs/real-demo
+.env
+coralcon-*.png

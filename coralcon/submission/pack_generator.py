@@ -77,7 +77,7 @@ python -m coralcon.cli submit-pack            # Generate these files
 
 CLI/Web -> Orchestrator -> Recon Agent -> Coral SQL -> GitHub + Sheets + LinkedIn
                        -> Analyst Agent (evidence-backed insights)
-                       -> Dashboard Agent (Notion writes)
+                       -> Dashboard Agent (local dashboard outputs)
                        -> Action Agent (prioritized tasks)
 
 ## Privacy
@@ -169,9 +169,9 @@ User -> CLI / Web Dashboard
            -> Deterministic rule-based insights
            -> Optional Claude API narrative analysis
         -> Dashboard Agent
-           -> Notion dashboard writes (optional)
+           -> local dashboard writes (optional)
         -> Action Agent
-           -> Prioritized Notion tasks (optional)
+           -> Prioritized local action tasks (optional)
 ```
 
 ## Data Flow
@@ -183,9 +183,9 @@ User -> CLI / Web Dashboard
    evidence-backed insights. Each insight includes the query ID, supporting numbers,
    and confidence score. Optionally, Claude API adds narrative analysis.
 
-3. **Dashboard Agent** writes structured results to a Notion page (when configured).
+3. **Dashboard Agent** writes structured results to a local dashboard (when configured).
 
-4. **Action Agent** creates prioritized tasks in a Notion database (when configured).
+4. **Action Agent** creates prioritized tasks in a local task list (when configured).
 
 ## Key Design Decisions
 

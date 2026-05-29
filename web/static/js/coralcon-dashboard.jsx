@@ -21,13 +21,25 @@ function useReveal(threshold = 0.15) {
         }
       });
     });
-    return () => obs.disconnect();
+    // Safety net: never leave content permanently hidden if the observer
+    // doesn't fire (e.g. headless render, no scroll, exotic browsers).
+    const failsafe = setTimeout(() => setVisible(true), 1400);
+    return () => { obs.disconnect(); clearTimeout(failsafe); };
   }, [threshold]);
   return [ref, visible];
 }
 
-function Reveal({ children, className = '' }) {
-  return <div className={className}>{children}</div>;
+function Reveal({ children, className = '', delay = 0 }) {
+  const [ref, visible] = useReveal();
+  return (
+    <div
+      ref={ref}
+      className={`cc-reveal ${visible ? 'is-visible' : ''} ${className}`}
+      style={{ transitionDelay: `${delay}ms` }}
+    >
+      {children}
+    </div>
+  );
 }
 
 /* ====== ANIMATED COUNTER ====== */
@@ -47,6 +59,51 @@ function AnimCounter({ target, duration = 1500, suffix = '', decimals = 0 }) {
   }, [target, duration]);
 
   return <>{decimals > 0 ? val.toFixed(decimals) : Math.round(val)}{suffix}</>;
+}
+
+/* ====== SHARE REPORT CARD ====== */
+function ShareReportButton({ data }) {
+  const [copied, setCopied] = useDashState(false);
+
+  const buildCard = () => {
+    const s = data.stats || {};
+    const worst = (data.rejectionByRole || []).reduce(
+      (a, b) => (b.rate > (a?.rate ?? -1) ? b : a), null);
+    const topInsight = (data.insights || [])[0];
+    const lines = [
+      '🧭 My CoralCon Career Report',
+      `${s.totalApplications} applications → ${s.responseRate}% response rate`,
+      worst ? `Worst category: ${worst.role} (${worst.rate}% rejection)` : null,
+      topInsight ? `Biggest fix: ${topInsight.title}` : null,
+      `Search health: ${s.healthScore}/100`,
+      `Decoded with one Coral SQL query across GitHub + Sheets + LinkedIn.`,
+    ].filter(Boolean);
+    return lines.join('\n');
+  };
+
+  const onShare = async () => {
+    const text = buildCard();
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = text; document.body.appendChild(ta); ta.select();
+        document.execCommand('copy'); document.body.removeChild(ta);
+      }
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2200);
+    } catch (e) {
+      setCopied(false);
+    }
+  };
+
+  return (
+    <button type="button" className="cc-share-btn" onClick={onShare}>
+      <CCIcon name={copied ? 'check' : 'share'} size={15} />
+      {copied ? 'Copied to clipboard' : 'Share my report card'}
+    </button>
+  );
 }
 
 /* ====== HEALTH GAUGE ====== */
@@ -287,7 +344,7 @@ function HowItWorksBanner({ accent }) {
   if (dismissed) return null;
 
   const steps = [
-    { icon: 'database', title: 'Pull your data', desc: 'GitHub repos, Notion applications, LinkedIn profile' },
+    { icon: 'database', title: 'Pull your data', desc: 'GitHub repos, Google Sheets applications, LinkedIn profile' },
     { icon: 'code', title: 'Find patterns', desc: 'SQL queries join all 3 sources to find what\'s failing' },
     { icon: 'target', title: 'Get fixes', desc: 'Each recommendation is backed by data, not guesswork' },
   ];
@@ -352,6 +409,11 @@ function DashboardTab({ tweaks }) {
       <Reveal>
         <div className="cc-hero">
           <div>
+            {!portfolioMode && (
+              <div className="cc-hero-kicker">
+                I turned my rejection history into a queryable evidence system.
+              </div>
+            )}
             <div className="cc-hero-tagline">
               {portfolioMode ? (
                 <>Portfolio Report</>
@@ -362,27 +424,34 @@ function DashboardTab({ tweaks }) {
             <p className="cc-hero-sub">
               {portfolioMode
                 ? 'Your portfolio scanned for recruiter-visible skills, projects, and proof.'
-                : 'CoralCon analyzed your applications, GitHub activity, and LinkedIn profile to find the patterns behind your rejections.'
+                : 'CoralCon joins your applications, GitHub activity, and LinkedIn profile with one Coral SQL query — every finding below is backed by data, not guesswork.'
               }
             </p>
             <div className="cc-live-status">
               <span className={data.usingSampleData ? 'sample' : 'live'}>
-                {data.usingSampleData ? 'Demo data' : 'Your data'}
+                {data.usingSampleData ? 'Sample mode' : 'Live Coral SQL'}
               </span>
               {loading && <span>Loading...</span>}
               {loadError && <span className="error">{loadError}</span>}
             </div>
+            {!portfolioMode && <ShareReportButton data={data} />}
           </div>
-          <div className="cc-hero-sources">
-            {['gitBranch:GitHub', 'fileText:Notion', 'link:LinkedIn'].map((s) => {
-              const [icon, label] = s.split(':');
-              return (
-                <span key={label} className="cc-source-pill">
-                  <CCIcon name={icon} size={14} /> {label}
-                </span>
-              );
-            })}
-          </div>
+          {!portfolioMode && (
+            <div className="cc-hero-stat">
+              <div className="cc-hero-stat-num">{data.stats.totalApplications}</div>
+              <div className="cc-hero-stat-label">applications<br/>decoded</div>
+              <div className="cc-hero-sources" style={{ marginTop: 'var(--cc-sp-3)' }}>
+                {['gitBranch:GitHub', 'database:Sheets', 'link:LinkedIn'].map((s) => {
+                  const [icon, label] = s.split(':');
+                  return (
+                    <span key={label} className="cc-source-pill">
+                      <CCIcon name={icon} size={14} /> {label}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </Reveal>
 
@@ -419,7 +488,7 @@ function DashboardTab({ tweaks }) {
           label={portfolioMode ? 'Skills Found' : 'Applications'}
           value={data.stats.totalApplications}
           color={accent}
-          sublabel={portfolioMode ? 'on your portfolio' : 'tracked in Notion'}
+          sublabel={portfolioMode ? 'on your portfolio' : 'tracked in Sheets'}
           delay={0}
         />
         <StatCard

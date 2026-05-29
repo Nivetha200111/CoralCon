@@ -24,7 +24,10 @@ def _coral_available() -> bool:
 
 
 def _data_backend() -> str:
-    return os.getenv("CORALCON_DATA_BACKEND", "sqlite").strip().lower()
+    # On serverless hosts (Vercel) the bundled SQLite file is a thin demo, so
+    # default to the rich JSON sample that tells the full story.
+    default = "json" if os.getenv("VERCEL") else "sqlite"
+    return os.getenv("CORALCON_DATA_BACKEND", default).strip().lower()
 
 
 def run_query(sql: str) -> list[dict]:
@@ -54,7 +57,7 @@ def run_query(sql: str) -> list[dict]:
 def _run_real_query(sql: str) -> list[dict]:
     """Execute real-mode queries, adapting the application tracker when needed."""
     sql_lower = sql.lower()
-    if "sheets.applications" in sql_lower or "notion.applications" in sql_lower:
+    if "sheets.applications" in sql_lower:
         return _run_applications_query(sql)
     if "from github.activity" in sql_lower and (
         "commits_count" in sql_lower or "active_repos" in sql_lower or "week" in sql_lower
@@ -79,7 +82,7 @@ def _run_coral_query(sql: str) -> list[dict]:
 
 
 def _run_applications_query(sql: str) -> list[dict]:
-    """Read application rows (Google Sheets file source, Notion fallback) and aggregate."""
+    """Read application rows from the Google Sheets file source and aggregate."""
     apps = _fetch_applications_table()
     sql_lower = sql.lower()
 
@@ -135,20 +138,13 @@ def _fetch_applications_table() -> list[dict]:
 
     Primary source is the Google Sheets-backed Coral file source
     (`sheets.applications`), synced from the Sheet by `coralcon sheets-sync`.
-    Falls back to the legacy Notion table block if the sheets source is empty
-    or unavailable, so existing setups keep working.
     """
-    try:
-        rows = _run_coral_query(
-            "SELECT id, company, role_title, status, applied_date, "
-            "responded_date, required_skills, salary_range, source "
-            "FROM sheets.applications LIMIT 1000"
-        )
-        if rows:
-            return [_normalize_sheets_row(row, index) for index, row in enumerate(rows, 1)]
-    except RuntimeError:
-        pass
-    return _fetch_notion_applications_table()
+    rows = _run_coral_query(
+        "SELECT id, company, role_title, status, applied_date, "
+        "responded_date, required_skills, salary_range, source "
+        "FROM sheets.applications LIMIT 1000"
+    )
+    return [_normalize_sheets_row(row, index) for index, row in enumerate(rows, 1)]
 
 
 def _normalize_sheets_row(row: dict, index: int) -> dict:
@@ -169,77 +165,6 @@ def _normalize_sheets_row(row: dict, index: int) -> dict:
         "salary_range": row.get("salary_range", ""),
         "source": row.get("source", "Sheets"),
     }
-
-
-def _fetch_notion_applications_table() -> list[dict]:
-    """Fetch rows from a Notion simple table block through Coral (legacy fallback)."""
-    block_id = os.getenv("NOTION_APPLICATIONS_TABLE_BLOCK_ID")
-    if not block_id:
-        block_id = _discover_notion_applications_table_block()
-    if not block_id:
-        raise RuntimeError(
-            "Missing NOTION_APPLICATIONS_TABLE_BLOCK_ID. Share the Job Applications "
-            "page with the Notion integration, then set the table block ID."
-        )
-
-    rows = _run_coral_query(
-        "SELECT id, raw FROM notion.block_children "
-        f"WHERE block_id = '{block_id}' LIMIT 500"
-    )
-    parsed = [_parse_notion_table_row(row.get("raw", "")) for row in rows]
-    parsed = [row for row in parsed if row]
-    if not parsed:
-        return []
-
-    headers = [_normalize_header(cell) for cell in parsed[0]]
-    applications = []
-    for index, cells in enumerate(parsed[1:], start=1):
-        values = {headers[i]: cells[i] if i < len(cells) else "" for i in range(len(headers))}
-        if not any(values.values()):
-            continue
-        skills = [
-            skill.strip()
-            for skill in values.get("required_skills", "").replace(";", ",").split(",")
-            if skill.strip()
-        ]
-        applications.append(
-            {
-                "id": f"notion_row_{index:03d}",
-                "company": values.get("company", ""),
-                "role_title": values.get("role_title", ""),
-                "applied_date": values.get("applied_date", ""),
-                "status": _normalize_status(values.get("status", "")),
-                "required_skills": skills,
-                "salary_range": values.get("salary_range", ""),
-                "source": values.get("source", "Notion"),
-            }
-        )
-    return applications
-
-
-def _discover_notion_applications_table_block() -> str | None:
-    page_id = os.getenv("NOTION_APPLICATIONS_PAGE_ID")
-    if not page_id:
-        return None
-    rows = _run_coral_query(
-        "SELECT id, type FROM notion.block_children "
-        f"WHERE block_id = '{page_id}' LIMIT 100"
-    )
-    for row in rows:
-        if row.get("type") == "table":
-            return row.get("id")
-    return None
-
-
-def _parse_notion_table_row(raw: str) -> list[str]:
-    if not raw:
-        return []
-    block = json.loads(raw)
-    cells = block.get("table_row", {}).get("cells", [])
-    values = []
-    for cell in cells:
-        values.append("".join(part.get("plain_text", "") for part in cell).strip())
-    return values
 
 
 def _normalize_header(value: str) -> str:
@@ -456,11 +381,9 @@ def _run_sample_query(sql: str) -> list[dict]:
     Route to the appropriate sample dataset based on the SQL query.
     Parses the FROM clause to determine which table to read.
     """
-    # sheets.applications is the new primary tracker; alias it to the existing
-    # application routing so sample fixtures resolve identically.
-    sql_lower = sql.lower().replace("sheets.applications", "notion.applications")
+    sql_lower = sql.lower()
 
-    if "notion.applications" in sql_lower and "github.activity" in sql_lower:
+    if "sheets.applications" in sql_lower and "github.activity" in sql_lower:
         return _load_sample("github_correlation.json")
     elif "followup" in sql_lower or "days_waiting" in sql_lower or "datediff" in sql_lower:
         return _load_sample("followup.json")
@@ -468,11 +391,11 @@ def _run_sample_query(sql: str) -> list[dict]:
         "required_skills" in sql_lower and "linkedin" in sql_lower
     ):
         return _load_sample("skill_gaps.json")
-    elif "notion.applications" in sql_lower and "group by" in sql_lower:
+    elif "sheets.applications" in sql_lower and "group by" in sql_lower:
         return _load_sample("rejection_patterns.json")
     elif "timing" in sql_lower or "days_to_apply" in sql_lower or "timing_bucket" in sql_lower:
         return _load_sample("timing_analysis.json")
-    elif "notion.applications" in sql_lower:
+    elif "sheets.applications" in sql_lower:
         return _load_sample("applications.json")
     elif "github" in sql_lower:
         return _load_sample("github_activity.json")
@@ -497,7 +420,6 @@ def check_coral_connection() -> dict:
     status = {
         "coral_installed": False,
         "github_connected": False,
-        "notion_connected": False,
         "sheets_connected": False,
         "gmail_connected": False,
         "linkedin_connected": False,
@@ -513,7 +435,6 @@ def check_coral_connection() -> dict:
 
     status["coral_installed"] = True
     status["github_connected"] = "github" in sources
-    status["notion_connected"] = "notion" in sources
     status["sheets_connected"] = "sheets" in sources
     status["gmail_connected"] = "gmail" in sources
     status["linkedin_connected"] = "linkedin" in sources
@@ -561,7 +482,7 @@ def _installed_coral_sources() -> set[str] | None:
     if result.returncode != 0:
         return None
 
-    known_sources = {"github", "notion", "sheets", "gmail", "linkedin"}
+    known_sources = {"github", "sheets", "gmail", "linkedin"}
     found = set()
     for line in result.stdout.splitlines():
         for source in known_sources:

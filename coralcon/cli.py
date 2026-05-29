@@ -13,7 +13,6 @@ from coralcon.benchmarks.cache_benchmark import run_cache_benchmark
 from coralcon.cohort.report import build_cohort_report
 from coralcon.database import database_status, execute_sql, initialize_database
 from coralcon.demo.judge_demo import demo_lines, run_judge_demo
-from coralcon.notion.client import NotionWriteClient
 from coralcon.orchestrator import CoralConOrchestrator
 from coralcon.portfolio import inspect_portfolio
 from coralcon.privacy.report import write_privacy_report
@@ -40,14 +39,14 @@ def cli():
 
 @cli.command()
 @click.option("--no-ai", is_flag=True, help="Skip LLM analysis")
-@click.option("--no-dashboard", is_flag=True, help="Skip Notion dashboard update")
-@click.option("--no-actions", is_flag=True, help="Skip Notion action task creation")
-@click.option("--dry-run", is_flag=True, help="Preview Notion writes without creating them")
+@click.option("--no-dashboard", is_flag=True, help="Skip local dashboard summary")
+@click.option("--no-actions", is_flag=True, help="Skip local action task generation")
+@click.option("--dry-run", is_flag=True, help="Run without external writes")
 @click.option("--portfolio-url", help="Public portfolio URL to inspect during analysis")
 def analyze(no_ai, no_dashboard, no_actions, dry_run, portfolio_url):
     """Run the full Phase 2 pipeline across all agents."""
     _set_portfolio_url(portfolio_url)
-    fmt.print_header("FULL ANALYSIS", "Querying GitHub, Notion, and LinkedIn via Coral SQL...")
+    fmt.print_header("FULL ANALYSIS", "Querying GitHub, Sheets, and LinkedIn via Coral SQL...")
 
     orchestrator = CoralConOrchestrator()
     with fmt.spinner("Running Recon, Analyst, Dashboard, and Action agents..."):
@@ -82,9 +81,8 @@ def analyze(no_ai, no_dashboard, no_actions, dry_run, portfolio_url):
             console.print(f"\n  [dim]{dashboard.get('message')}[/dim]")
 
     if not no_actions:
-        created = result["tasks_created"]
         total_tasks = len(result["tasks"])
-        console.print(f"  [dim]Action agent prepared {total_tasks} task(s); {created} created in Notion.[/dim]")
+        console.print(f"  [dim]Action agent prepared {total_tasks} local task(s).[/dim]")
 
     console.print(
         f"  [dim]Run [bright_cyan]coralcon followup[/bright_cyan] for "
@@ -285,7 +283,7 @@ def cohort_analyze():
 
 @cli.command()
 @click.option("--no-ai", is_flag=True, help="Skip LLM analysis")
-@click.option("--dry-run", is_flag=True, help="Preview dashboard update without writing to Notion")
+@click.option("--dry-run", is_flag=True, help="Preview dashboard summary")
 @click.option("--sample", "sample_mode", is_flag=True, help="Force sample mode")
 @click.option("--portfolio-url", help="Public portfolio URL to inspect during analysis")
 def dashboard(no_ai, dry_run, sample_mode, portfolio_url):
@@ -293,7 +291,7 @@ def dashboard(no_ai, dry_run, sample_mode, portfolio_url):
     _set_portfolio_url(portfolio_url)
     if sample_mode:
         os.environ["CORAL_AVAILABLE"] = "false"
-    fmt.print_header("DASHBOARD", "Updating the Notion dashboard when configured...")
+    fmt.print_header("DASHBOARD", "Preparing the local dashboard summary...")
     with fmt.spinner("Preparing dashboard..."):
         result = CoralConOrchestrator().run_dashboard(use_ai=not no_ai, dry_run=True if dry_run else None)
 
@@ -307,38 +305,18 @@ def dashboard(no_ai, dry_run, sample_mode, portfolio_url):
 
 @cli.command()
 @click.option("--no-ai", is_flag=True, help="Skip LLM analysis")
-@click.option("--dry-run", is_flag=True, help="Preview tasks without writing to Notion")
+@click.option("--dry-run", is_flag=True, help="Preview local tasks")
 @click.option("--portfolio-url", help="Public portfolio URL to inspect during analysis")
 def actions(no_ai, dry_run, portfolio_url):
     """Run Recon + Analyst + Action agents."""
     _set_portfolio_url(portfolio_url)
-    fmt.print_header("ACTIONS", "Creating or previewing Notion action tasks...")
+    fmt.print_header("ACTIONS", "Creating local action tasks...")
     with fmt.spinner("Preparing tasks..."):
         result = CoralConOrchestrator().run_actions(use_ai=not no_ai, dry_run=True if dry_run else None)
 
     tasks = result["tasks"]
     fmt.print_action_items([task["title"] for task in tasks])
-    created = sum(1 for task in tasks if task.get("created"))
-    console.print(f"  [dim]{created}/{len(tasks)} task(s) created in Notion.[/dim]\n")
-
-
-@cli.command()
-@click.option("--dashboard-page-id", help="Existing Notion page ID for dashboard writes")
-@click.option("--actions-db-id", help="Existing Notion database ID for action tasks")
-def setup(dashboard_page_id, actions_db_id):
-    """Store Notion dashboard/action target IDs in ~/.coralcon/config.json."""
-    client = NotionWriteClient()
-    if dashboard_page_id or actions_db_id:
-        config = client.save_setup(dashboard_page_id, actions_db_id)
-        console.print("\n  [bright_green]CoralCon config updated.[/bright_green]")
-        console.print(f"  Dashboard page: [dim]{config.get('dashboard_page_id', 'not set')}[/dim]")
-        console.print(f"  Actions DB:     [dim]{config.get('actions_db_id', 'not set')}[/dim]\n")
-        return
-
-    console.print("\n  [bold]Current CoralCon setup[/bold]")
-    console.print(f"  Dashboard page: [dim]{client.dashboard_page_id or 'not set'}[/dim]")
-    console.print(f"  Actions DB:     [dim]{client.actions_db_id or 'not set'}[/dim]")
-    console.print("  Notion token:   [dim]set[/dim]\n" if client.is_configured() else "  Notion token:   [dim]not set[/dim]\n")
+    console.print(f"  [dim]{len(tasks)} local task(s) ready.[/dim]\n")
 
 
 @cli.command()

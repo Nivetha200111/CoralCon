@@ -2,7 +2,15 @@
 
 import os
 
-from coralcon.proof.query_logger import get_query_log
+from coralcon.proof.query_logger import cache_hit_rate, get_query_log
+
+
+def _resolved_mode(entries: list[dict]) -> str:
+    """Mode the logged queries actually ran in (falls back to live env)."""
+    modes = [entry.get("mode") for entry in entries if entry.get("mode")]
+    if modes:
+        return modes[-1]
+    return "real" if os.getenv("CORAL_AVAILABLE", "false").lower() == "true" else "sample"
 
 
 def build_proof_report() -> str:
@@ -13,7 +21,8 @@ def build_proof_report() -> str:
     total_rows = sum(entry.get("rows_returned", 0) for entry in entries)
     total_time = sum(entry.get("execution_ms", 0) for entry in entries)
     cached_count = sum(1 for entry in entries if entry.get("used_cache"))
-    mode = "real" if os.getenv("CORAL_AVAILABLE", "false").lower() == "true" else "sample"
+    hit_rate = cache_hit_rate(entries)
+    mode = _resolved_mode(entries)
 
     lines = [
         "",
@@ -25,6 +34,7 @@ def build_proof_report() -> str:
         f"  Total Rows Returned:    {total_rows}",
         f"  Total Execution Time:   {total_time:.1f}ms",
         f"  Cached Queries:         {cached_count}",
+        f"  Cache Hit Rate:         {hit_rate:.1f}%",
         f"  Mode:                   {mode}",
         "",
         "  Sources Used:",
@@ -68,7 +78,7 @@ def proof_summary() -> dict:
     total_time = sum(entry.get("execution_ms", 0) for entry in entries)
     cached_count = sum(1 for entry in entries if entry.get("used_cache"))
     best = _best_query(entries)
-    mode = "real" if os.getenv("CORAL_AVAILABLE", "false").lower() == "true" else "sample"
+    mode = _resolved_mode(entries)
 
     return {
         "total_queries": len(entries),
@@ -77,9 +87,33 @@ def proof_summary() -> dict:
         "total_rows": total_rows,
         "total_execution_ms": round(total_time, 2),
         "cached_queries": cached_count,
+        "cache_hit_rate": cache_hit_rate(entries),
         "mode": mode,
         "best_query": best,
         "queries": entries,
+    }
+
+
+def proof_bundle(mode: str | None = None) -> dict:
+    """Rich, judge-facing proof object: top-level summary + per-query records.
+
+    Written to runs/real-demo/proof.json (and any standalone bundle file). The
+    flat list at runs/latest/proof.json is kept separately for backward compat.
+    """
+    entries = get_query_log()
+    summary = proof_summary()
+    resolved_mode = mode or summary["mode"]
+    return {
+        "summary": {
+            "total_queries": summary["total_queries"],
+            "cross_source_joins": summary["cross_source_queries"],
+            "cache_hit_rate": summary["cache_hit_rate"],
+            "total_rows": summary["total_rows"],
+            "total_execution_time_ms": summary["total_execution_ms"],
+            "sources_used": summary["sources"],
+            "mode": resolved_mode,
+        },
+        "queries": [{**entry, "mode": resolved_mode} for entry in entries],
     }
 
 

@@ -46,7 +46,7 @@ def generate_full_analysis(query_results: dict) -> str:
 JOB SEARCH OVERVIEW:
 - Total applications: {total_apps}
 - Response rate: {response_rate:.1f}%
-- Data from: GitHub, Notion (application tracker), LinkedIn
+- Data from: GitHub, Google Sheets application tracker, LinkedIn
 
 REJECTION PATTERNS BY ROLE:
 {json.dumps(rejections[:10], indent=2)}

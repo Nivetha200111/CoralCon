@@ -43,7 +43,7 @@ python -m coralcon.cli submit-pack            # Generate these files
 
 CLI/Web -> Orchestrator -> Recon Agent -> Coral SQL -> GitHub + Sheets + LinkedIn
                        -> Analyst Agent (evidence-backed insights)
-                       -> Dashboard Agent (Notion writes)
+                       -> Dashboard Agent (local dashboard outputs)
                        -> Action Agent (prioritized tasks)
 
 ## Privacy

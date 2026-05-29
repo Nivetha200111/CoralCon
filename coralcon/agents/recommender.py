@@ -87,7 +87,7 @@ def generate_action_items(
     # Fallback if no data-driven actions
     if not actions:
         actions = [
-            "Connect Notion, GitHub, and LinkedIn to get personalized recommendations.",
+            "Connect Sheets, GitHub, and LinkedIn to get personalized recommendations.",
             "Log at least 20 applications to get statistically meaningful patterns.",
         ]
 
