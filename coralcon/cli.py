@@ -11,6 +11,7 @@ load_dotenv()
 from coralcon.agents import analyzer, recommender
 from coralcon.benchmarks.cache_benchmark import run_cache_benchmark
 from coralcon.cohort.report import build_cohort_report
+from coralcon.database import database_status, execute_sql, initialize_database
 from coralcon.demo.judge_demo import demo_lines, run_judge_demo
 from coralcon.notion.client import NotionWriteClient
 from coralcon.orchestrator import CoralConOrchestrator
@@ -193,6 +194,52 @@ def submit_pack():
 @cli.group()
 def cohort():
     """Cohort analysis commands."""
+
+@cli.group()
+def db():
+    """Manage the local SQLite CoralCon database."""
+
+
+@db.command("init")
+@click.option("--reset", is_flag=True, help="Recreate the database from seeded sample data")
+@click.option("--empty", is_flag=True, help="Create schema without sample rows")
+def db_init(reset, empty):
+    """Create the local SQLite database."""
+    path = initialize_database(seed=not empty, reset=reset)
+    status = database_status(path)
+    console.print(f"\n  [bright_green]Database ready:[/bright_green] [dim]{path}[/dim]")
+    console.print(f"  Schema version: [bright_cyan]{status['schema_version']}[/bright_cyan]")
+    console.print(f"  Applications:   [bright_cyan]{status['tables']['applications']}[/bright_cyan]")
+    console.print(f"  Proof tables:   [bright_cyan]{_proof_table_count(status)}[/bright_cyan]\n")
+
+
+@db.command("status")
+def db_status():
+    """Show local database path and table counts."""
+    status = database_status()
+    console.print()
+    console.print(f"  Path: [dim]{status['path']}[/dim]")
+    if not status["exists"]:
+        console.print("  [yellow]Database has not been created yet.[/yellow]")
+        console.print("  Run [bright_cyan]python -m coralcon.cli db init[/bright_cyan].\n")
+        return
+
+    console.print(f"  Schema version: [bright_cyan]{status['schema_version']}[/bright_cyan]")
+    for table, count in status["tables"].items():
+        console.print(f"  {table:<22} [bright_cyan]{count}[/bright_cyan]")
+    console.print()
+
+
+@db.command("query")
+@click.argument("sql", nargs=-1, required=True)
+def db_query(sql):
+    """Run a read-only SQL query against the local database."""
+    statement = " ".join(sql).strip()
+    if not statement.lower().startswith("select"):
+        raise click.ClickException("Only SELECT queries are allowed from the CLI.")
+    rows = execute_sql(statement)
+    console.print_json(data=rows)
+
 
 
 @cohort.command("analyze")
@@ -462,6 +509,17 @@ def _set_portfolio_url(portfolio_url: str | None) -> None:
 
 def build_file_message(label: str, path) -> str:
     return f"\n  [bright_green]{label}:[/bright_green] [dim]{path}[/dim]\n"
+
+def _proof_table_count(status: dict) -> int:
+    proof_tables = (
+        "rejection_patterns",
+        "skill_gaps",
+        "timing_analysis",
+        "followup_queue",
+        "github_correlation",
+    )
+    return sum(status["tables"].get(table, 0) for table in proof_tables)
+
 
 
 if __name__ == "__main__":

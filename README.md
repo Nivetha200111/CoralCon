@@ -74,6 +74,21 @@ python -m coralcon.cli serve
 
 Open `http://127.0.0.1:8000`. The dashboard includes a dedicated **Coral Proof** tab showing every query, every source, every JOIN, with execution times and row counts.
 
+### Local SQLite Database
+
+CoralCon now uses a real local SQLite database in sample/local mode. The default
+path is `data/coralcon.sqlite`, and it is seeded from the bundled sample data the
+first time a query runs.
+
+```bash
+python -m coralcon.cli db init --reset
+python -m coralcon.cli db status
+python -m coralcon.cli db query "SELECT company, role_title, status FROM applications LIMIT 5"
+```
+
+Set `CORALCON_DATA_BACKEND=json` only if you want to bypass SQLite and read the
+raw JSON fixtures directly.
+
 ### Generate the Submission Pack
 
 ```bash
@@ -161,6 +176,8 @@ The source spec lives in `coral/sources/linkedin/source.yaml`. To get your data:
 
 ```bash
 # Core analysis
+python -m coralcon.cli db init --reset               # Create local SQLite DB
+python -m coralcon.cli db status                     # Show DB table counts
 python -m coralcon.cli analyze --no-ai --dry-run    # Full pipeline
 python -m coralcon.cli recon                         # Data collection only
 python -m coralcon.cli insights --no-ai              # Analysis without Notion writes
