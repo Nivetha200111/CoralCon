@@ -6,18 +6,19 @@
 ## What It Is
 
 CoralCon is a local-first career intelligence agent that turns rejection history
-into an evidence-backed improvement plan by joining GitHub proof-of-work, Notion
-application outcomes, and LinkedIn profile signals through Coral SQL.
+into an evidence-backed improvement plan by joining GitHub proof-of-work, a Google
+Sheets tracker (auto-filled from Gmail rejections), and LinkedIn profile signals
+through Coral SQL.
 
 ## Why Coral Is Essential
 
 Coral SQL is the central data layer. Every piece of career intelligence flows through it.
 
-Without Coral, CoralCon would need three separate API integrations (GitHub, Notion,
-LinkedIn GDPR), each with custom auth, pagination, schema mapping, and correlation
-logic. With Coral, the agent asks one SQL question across all sources.
+Without Coral, CoralCon would need three separate API integrations (GitHub, Google
+Sheets, LinkedIn GDPR), each with custom auth, pagination, schema mapping, and
+correlation logic. With Coral, the agent asks one SQL question across all sources.
 
-Cross-source JOINs are what make the insights possible. Joining `notion.applications`
+Cross-source JOINs are what make the insights possible. Joining `sheets.applications`
 with `github.activity` proves whether commit cadence correlates with response rate.
 Joining with `linkedin.skills` proves whether profile signals match role requirements.
 
@@ -25,7 +26,7 @@ Joining with `linkedin.skills` proves whether profile signals match role require
 
 - Total queries: 9
 - Cross-source JOINs: 2
-- Sources: github.activity, github.profile, linkedin.profile, linkedin.skills, notion.applications
+- Sources: github.activity, github.profile, linkedin.profile, linkedin.skills, sheets.applications
 - Mode: sample
 
 ## Demo Commands
@@ -40,7 +41,7 @@ python -m coralcon.cli submit-pack            # Generate these files
 
 ## Architecture
 
-CLI/Web -> Orchestrator -> Recon Agent -> Coral SQL -> GitHub + Notion + LinkedIn
+CLI/Web -> Orchestrator -> Recon Agent -> Coral SQL -> GitHub + Sheets + LinkedIn
                        -> Analyst Agent (evidence-backed insights)
                        -> Dashboard Agent (Notion writes)
                        -> Action Agent (prioritized tasks)

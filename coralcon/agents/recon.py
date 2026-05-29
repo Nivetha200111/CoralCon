@@ -21,7 +21,7 @@ SELECT
   required_skills,
   salary_range,
   source
-FROM notion.applications
+FROM sheets.applications
 ORDER BY applied_date DESC
 """
 

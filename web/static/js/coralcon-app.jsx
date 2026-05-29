@@ -5,6 +5,7 @@ const { useState: useAppState, useEffect: useAppEffect, useCallback: useAppCb } 
 const TABS = [
   { id: 'dashboard', label: 'My Report', icon: 'layoutDashboard' },
   { id: 'ask', label: 'Ask', icon: 'search' },
+  { id: 'sources', label: 'Import', icon: 'mail' },
   { id: 'proof', label: 'How It Works', icon: 'database' },
   { id: 'cohort', label: 'Teams', icon: 'users' },
   { id: 'privacy', label: 'Privacy', icon: 'shield' },
@@ -13,6 +14,7 @@ const TABS = [
 const TAB_PATHS = {
   dashboard: '/dashboard',
   ask: '/ask',
+  sources: '/sources',
   proof: '/proof',
   cohort: '/cohort',
   privacy: '/privacy',
@@ -56,7 +58,7 @@ function LiveStatusPill() {
   if (!status) return null;
 
   const live = !status.using_sample_data && status.coral_installed;
-  const connected = ['github', 'notion', 'linkedin']
+  const connected = ['gmail', 'sheets', 'github', 'linkedin']
     .filter(src => status[`${src}_connected`])
     .map(src => src.charAt(0).toUpperCase() + src.slice(1));
 
@@ -66,7 +68,7 @@ function LiveStatusPill() {
       style={{
         display: 'flex', alignItems: 'center', gap: 6,
         margin: '0 var(--cc-sp-3) var(--cc-sp-2)',
-        borderColor: live ? '#20c9a0' : 'var(--cc-border)',
+        borderColor: live ? 'var(--cc-teal)' : 'var(--cc-border)',
       }}
       title={live
         ? `Coral connected: ${connected.join(', ') || 'sources'}`
@@ -74,8 +76,7 @@ function LiveStatusPill() {
     >
       <span style={{
         width: 8, height: 8, borderRadius: '50%',
-        background: live ? '#20c9a0' : '#f0a500',
-        boxShadow: live ? '0 0 8px #20c9a0' : 'none',
+        background: live ? 'var(--cc-teal)' : 'var(--cc-gold)',
       }} />
       {live
         ? <>Live via Coral{connected.length ? ` · ${connected.join(' · ')}` : ''}</>
@@ -86,7 +87,7 @@ function LiveStatusPill() {
 
 /* ====== MAIN APP ====== */
 function CoralConApp() {
-  const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{"pirateIntensity":"subtle","accentColor":"#f0a500","chartStyle":"outlined","theme":"dark"}/*EDITMODE-END*/;
+  const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{"pirateIntensity":"subtle","accentColor":"#b4452f","chartStyle":"outlined","theme":"light"}/*EDITMODE-END*/;
 
   const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS);
   const [activeTab, setActiveTab] = useAppState(getInitialTab);
@@ -123,6 +124,7 @@ function CoralConApp() {
     switch (activeTab) {
       case 'dashboard': return <DashboardTab tweaks={tweaks} />;
       case 'ask': return <AskTab tweaks={tweaks} />;
+      case 'sources': return <SourcesTab tweaks={tweaks} />;
       case 'proof': return <ProofTab tweaks={tweaks} />;
       case 'cohort': return <CohortTab tweaks={tweaks} />;
       case 'privacy': return <PrivacyTab tweaks={tweaks} />;
@@ -224,7 +226,7 @@ function CoralConApp() {
           <TweakColor
             label="Primary Accent"
             value={tweaks.accentColor}
-            options={['#f0a500', '#20c9a0', '#4e8cff', '#a78bfa', '#ff6b6b']}
+            options={['#b4452f', '#3f6b5e', '#3a5a78', '#6b4e8a', '#c2722c']}
             onChange={v => setTweak('accentColor', v)}
           />
         </TweakSection>

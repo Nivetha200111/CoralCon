@@ -1,0 +1,56 @@
+name: sheets
+version: 0.1.0
+dsl_version: 3
+backend: file
+
+description: >-
+  Reads a Google Sheets-backed job application tracker as a queryable SQL table.
+  CoralCon syncs the Google Sheet to a local CSV (data/applications.csv) via the
+  Google Sheets API, then Coral queries it here. This replaces the old Notion
+  tracker: one flat sheet you can manage by hand, queried through Coral and
+  JOINed against github.* and linkedin.* like any other source.
+
+inputs:
+  SHEETS_CSV_PATH:
+    kind: variable
+    default: /home/nivetha/CoralCon/data
+    hint: >-
+      Absolute path to the directory holding applications.csv, kept in sync with
+      your Google Sheet by `python -m coralcon.cli sheets-sync`.
+
+test_queries:
+  - SELECT * FROM sheets.applications LIMIT 1
+  - SELECT role_title, status FROM sheets.applications LIMIT 5
+
+tables:
+  - name: applications
+    description: >-
+      Job applications and their outcomes, synced from a Google Sheet.
+      One row per application: company, role, status, dates, required skills.
+    format: csv
+    format_options:
+      has_header: true
+    source:
+      location: file://{{input.SHEETS_CSV_PATH}}/
+      glob: applications.csv
+    columns:
+      - name: id
+        type: Utf8
+      - name: company
+        type: Utf8
+      - name: role_title
+        type: Utf8
+      - name: status
+        type: Utf8
+      - name: applied_date
+        type: Utf8
+      - name: responded_date
+        type: Utf8
+      - name: required_skills
+        type: Utf8
+      - name: salary_range
+        type: Utf8
+      - name: source
+        type: Utf8
+      - name: notes
+        type: Utf8

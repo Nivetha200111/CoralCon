@@ -1,79 +1,79 @@
-/* CoralCon Theme — Pirate-Premium Dark/Light */
+/* CoralCon Theme — Editorial Report (cream paper / dark dossier) */
 
-/* ====== DARK THEME (default) ====== */
+/* ====== DARK EDITORIAL (toggle target) ====== */
 :root {
-  --cc-bg-deep: #060a14;
-  --cc-bg-primary: #0b1120;
-  --cc-bg-secondary: #101a2e;
-  --cc-bg-card: #13203a;
-  --cc-bg-elevated: #182845;
-  --cc-bg-hover: #1c3052;
-  --cc-gold: #f0a500;
-  --cc-gold-light: #ffd166;
-  --cc-gold-dim: rgba(240,165,0,0.12);
-  --cc-teal: #20c9a0;
-  --cc-teal-dim: rgba(32,201,160,0.12);
-  --cc-blue: #4e8cff;
-  --cc-blue-dim: rgba(78,140,255,0.12);
-  --cc-red: #ff6b6b;
-  --cc-red-dim: rgba(255,107,107,0.12);
-  --cc-purple: #a78bfa;
-  --cc-orange: #fb923c;
-  --cc-text-primary: #e8ecf4;
-  --cc-text-secondary: #7e90ad;
-  --cc-text-muted: #455773;
-  --cc-text-on-accent: #0b1120;
-  --cc-border: rgba(255,255,255,0.06);
-  --cc-border-strong: rgba(255,255,255,0.12);
-  --cc-shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
-  --cc-shadow-md: 0 4px 14px rgba(0,0,0,0.45);
-  --cc-shadow-lg: 0 8px 28px rgba(0,0,0,0.5);
-  --cc-glow-gold: 0 0 24px rgba(240,165,0,0.18);
-  --cc-glow-teal: 0 0 24px rgba(32,201,160,0.18);
+  --cc-bg-deep: #14120d;
+  --cc-bg-primary: #1a1813;
+  --cc-bg-secondary: #201d16;
+  --cc-bg-card: #221f18;
+  --cc-bg-elevated: #2a261d;
+  --cc-bg-hover: #322d22;
+  --cc-gold: #d96a4f;          /* rust accent (primary) */
+  --cc-gold-light: #e8866c;
+  --cc-gold-dim: rgba(217,106,79,0.14);
+  --cc-teal: #6fae9a;          /* muted forest (secondary) */
+  --cc-teal-dim: rgba(111,174,154,0.14);
+  --cc-blue: #8aa6c2;
+  --cc-blue-dim: rgba(138,166,194,0.14);
+  --cc-red: #df6b54;
+  --cc-red-dim: rgba(223,107,84,0.14);
+  --cc-purple: #b59bc9;
+  --cc-orange: #d68a4a;
+  --cc-text-primary: #ece5d8;
+  --cc-text-secondary: #b3a994;
+  --cc-text-muted: #7d745f;
+  --cc-text-on-accent: #1a1813;
+  --cc-border: rgba(236,229,216,0.10);
+  --cc-border-strong: rgba(236,229,216,0.20);
+  --cc-shadow-sm: 0 1px 2px rgba(0,0,0,0.35);
+  --cc-shadow-md: 0 6px 20px rgba(0,0,0,0.4);
+  --cc-shadow-lg: 0 14px 40px rgba(0,0,0,0.5);
+  --cc-glow-gold: 0 4px 18px rgba(217,106,79,0.16);
+  --cc-glow-teal: 0 4px 18px rgba(111,174,154,0.16);
   --cc-sidebar-w: 256px;
-  --cc-r-sm: 6px; --cc-r-md: 10px; --cc-r-lg: 16px; --cc-r-xl: 24px;
+  --cc-r-sm: 3px; --cc-r-md: 5px; --cc-r-lg: 8px; --cc-r-xl: 12px;
   --cc-sp-1: 4px; --cc-sp-2: 8px; --cc-sp-3: 12px; --cc-sp-4: 16px;
   --cc-sp-5: 24px; --cc-sp-6: 32px; --cc-sp-7: 48px; --cc-sp-8: 64px;
-  --cc-font-display: 'Playfair Display', Georgia, serif;
-  --cc-font-body: 'DM Sans', system-ui, sans-serif;
-  --cc-font-mono: 'Fira Code', 'Cascadia Code', monospace;
+  --cc-font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --cc-font-body: 'Inter', system-ui, sans-serif;
+  --cc-font-mono: 'IBM Plex Mono', 'Fira Code', monospace;
   --cc-ease: cubic-bezier(0.22,0.61,0.36,1);
-  --cc-chart-grid: rgba(255,255,255,0.06);
-  --cc-chart-text: #7e90ad;
+  --cc-chart-grid: rgba(236,229,216,0.08);
+  --cc-chart-text: #b3a994;
 }
 
-/* ====== LIGHT THEME ====== */
+/* ====== CREAM PAPER EDITORIAL (default) ====== */
 [data-theme="light"] {
-  --cc-bg-deep: #ede8df;
-  --cc-bg-primary: #f5f2eb;
-  --cc-bg-secondary: #ffffff;
-  --cc-bg-card: #ffffff;
-  --cc-bg-elevated: #f0ece3;
-  --cc-bg-hover: #e8e3d8;
-  --cc-gold: #c78600;
-  --cc-gold-light: #f0a500;
-  --cc-gold-dim: rgba(199,134,0,0.08);
-  --cc-teal: #0ea87e;
-  --cc-teal-dim: rgba(14,168,126,0.08);
-  --cc-blue: #2563eb;
-  --cc-blue-dim: rgba(37,99,235,0.08);
-  --cc-red: #dc2626;
-  --cc-red-dim: rgba(220,38,38,0.08);
-  --cc-purple: #7c3aed;
-  --cc-orange: #ea580c;
-  --cc-text-primary: #1a2332;
-  --cc-text-secondary: #556682;
-  --cc-text-muted: #94a3b8;
-  --cc-text-on-accent: #ffffff;
-  --cc-border: rgba(0,0,0,0.07);
-  --cc-border-strong: rgba(0,0,0,0.13);
-  --cc-shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
-  --cc-shadow-md: 0 4px 14px rgba(0,0,0,0.08);
-  --cc-shadow-lg: 0 8px 28px rgba(0,0,0,0.1);
-  --cc-glow-gold: 0 0 24px rgba(199,134,0,0.12);
-  --cc-glow-teal: 0 0 24px rgba(14,168,126,0.12);
-  --cc-chart-grid: rgba(0,0,0,0.06);
-  --cc-chart-text: #556682;
+  --cc-bg-deep: #e7dfce;
+  --cc-bg-primary: #f4efe6;     /* the page = paper */
+  --cc-bg-secondary: #faf6ee;
+  --cc-bg-card: #fffdf8;        /* card = lighter sheet */
+  --cc-bg-elevated: #efe8d9;
+  --cc-bg-hover: #ece4d2;
+  --cc-gold: #b4452f;           /* rust red (primary) */
+  --cc-gold-light: #c75a42;
+  --cc-gold-dim: rgba(180,69,47,0.10);
+  --cc-teal: #3f6b5e;           /* deep forest (secondary) */
+  --cc-teal-dim: rgba(63,107,94,0.10);
+  --cc-blue: #3a5a78;
+  --cc-blue-dim: rgba(58,90,120,0.10);
+  --cc-red: #b4452f;
+  --cc-red-dim: rgba(180,69,47,0.10);
+  --cc-purple: #6b4e8a;
+  --cc-orange: #c2722c;
+  --cc-text-primary: #1b1a17;   /* ink */
+  --cc-text-secondary: #5c574d;
+  --cc-text-muted: #8a8275;
+  --cc-text-on-accent: #fffdf8;
+  --cc-border: rgba(27,26,23,0.12);
+  --cc-border-strong: rgba(27,26,23,0.22);
+  --cc-shadow-sm: 0 1px 2px rgba(27,26,23,0.05);
+  --cc-shadow-md: 0 6px 18px rgba(27,26,23,0.07);
+  --cc-shadow-lg: 0 14px 36px rgba(27,26,23,0.10);
+  --cc-glow-gold: 0 4px 16px rgba(180,69,47,0.10);
+  --cc-glow-teal: 0 4px 16px rgba(63,107,94,0.10);
+  --cc-chart-grid: rgba(27,26,23,0.08);
+  --cc-chart-text: #5c574d;
 }
 
 /* ====== RESETS & BASE ====== */
@@ -841,3 +841,107 @@ body {
   .cc-health-gauge { width: 150px; height: 150px; }
   .cc-health-number { font-size: 42px; }
 }
+
+/* ============================================================== */
+/* ====== EDITORIAL REPORT OVERRIDES (printed-dossier look) ===== */
+/* ============================================================== */
+
+/* Optical-size + ligatures for the serif, crisp tracking for ink. */
+.cc-logo-text, .cc-page-title, .cc-stat-value, .cc-health-number,
+.cc-hero-tagline, .cc-health-info h2 {
+  font-variation-settings: 'opsz' 96;
+  font-feature-settings: 'liga' 1, 'dlig' 1;
+  letter-spacing: -0.015em;
+}
+
+/* Faint ledger-paper grain on the canvas. */
+body {
+  background-image:
+    radial-gradient(circle at 18% 12%, var(--cc-gold-dim) 0%, transparent 42%),
+    radial-gradient(circle at 88% 88%, var(--cc-teal-dim) 0%, transparent 46%);
+  background-attachment: fixed;
+}
+
+/* Masthead: big serif title with a double hairline rule beneath. */
+.cc-page-header {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--cc-sp-2);
+  padding-bottom: var(--cc-sp-4);
+  border-bottom: 3px double var(--cc-border-strong);
+}
+.cc-page-title { font-size: 34px; font-weight: 600; }
+.cc-page-subtitle { font-size: 14px; font-style: italic; color: var(--cc-text-secondary); }
+
+/* Sidebar reads like a contents column, not a chrome rail. */
+.cc-sidebar { border-right: 1px solid var(--cc-border-strong); }
+.cc-logo { border-bottom: 1px solid var(--cc-border); }
+.cc-logo-text { font-size: 24px; font-weight: 700; }
+.cc-logo-sub { font-style: italic; text-transform: none; letter-spacing: 0.01em; }
+
+/* Nav: editorial index — small-caps labels, rule on the active item. */
+.cc-nav-item {
+  border-radius: 0;
+  border-left: 2px solid transparent;
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+}
+.cc-nav-item.active {
+  background: transparent;
+  border-color: transparent;
+  border-left-color: var(--cc-gold);
+  color: var(--cc-gold);
+}
+.cc-nav-item.active::before { display: none; }
+.cc-nav-item:hover { background: var(--cc-gold-dim); }
+
+/* Cards become sheets: hairline rule, restrained hover (no neon lift). */
+.cc-card, .cc-stat-card, .cc-chart-card, .cc-insight-card,
+.cc-query-card, .cc-check-item, .cc-leaderboard-row, .cc-portfolio-panel {
+  border-color: var(--cc-border-strong);
+  box-shadow: none;
+}
+.cc-stat-card:hover, .cc-chart-card:hover, .cc-query-card:hover,
+.cc-insight-card:hover { transform: none; box-shadow: var(--cc-shadow-sm); }
+.cc-card:hover { box-shadow: var(--cc-shadow-sm); }
+
+/* Stat cards: a label, a rule, a big serif figure — like a fact box. */
+.cc-stat-card { border-top: 3px solid var(--cc-gold); }
+.cc-stat-value { font-size: 40px; }
+
+/* Section dividers feel like printed rules. */
+.cc-section-title::after { background: var(--cc-border-strong); }
+
+/* Hero: drop the glowing orbs; use a framed masthead block instead. */
+.cc-hero {
+  border: 1px solid var(--cc-border-strong);
+  border-top: 4px solid var(--cc-gold);
+  border-radius: var(--cc-r-md);
+  background: var(--cc-bg-secondary);
+}
+.cc-hero::before, .cc-hero::after { display: none !important; }
+.cc-hero-tagline { font-size: 36px; font-weight: 600; line-height: 1.2; }
+.cc-hero-tagline em { font-style: italic; color: var(--cc-gold); }
+.cc-hero-kicker { font-style: italic; text-transform: uppercase; }
+
+/* Pills + chips: squared, inked outlines rather than glow. */
+.cc-source-pill, .cc-badge-cross, .cc-insight-severity, .cc-skill-chip {
+  border-radius: var(--cc-r-sm);
+}
+.cc-source-pill:hover { transform: none; box-shadow: none; background: var(--cc-bg-hover); }
+
+/* Buttons: solid ink-on-rust, square, no float. */
+.cc-portfolio-button { border-radius: var(--cc-r-sm); }
+.cc-portfolio-button:hover:not(:disabled) { transform: none; box-shadow: var(--cc-shadow-sm); filter: brightness(1.06); }
+.cc-portfolio-input { border-radius: var(--cc-r-sm); }
+.cc-portfolio-input:focus { box-shadow: none; border-color: var(--cc-gold); }
+
+/* SQL block reads like a monospaced footnote. */
+.cc-sql-block { border-radius: var(--cc-r-sm); border-color: var(--cc-border-strong); }
+
+/* Quiet the gauge's pulsing neon ring for print calm. */
+.cc-health-gauge::after { display: none; }
+
+/* Live status pill in the contents column. */
+.cc-source-pill { letter-spacing: 0.02em; }

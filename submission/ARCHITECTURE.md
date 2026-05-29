@@ -8,7 +8,7 @@ User -> CLI / Web Dashboard
         -> Recon Agent
            -> Coral SQL Layer
               -> GitHub (repos, events, profile)
-              -> Notion (applications, status, skills)
+              -> Google Sheets (applications, status, skills) [from Gmail]
               -> LinkedIn (GDPR export: skills, positions, headline)
         -> Analyst Agent
            -> Deterministic rule-based insights
@@ -34,8 +34,10 @@ User -> CLI / Web Dashboard
 
 ## Key Design Decisions
 
-- **Coral SQL is the only data access path.** The agent never calls GitHub, Notion,
-  or LinkedIn APIs directly. This ensures all data retrieval is logged and auditable.
+- **Coral SQL is the only analysis path.** The agent never queries sources for
+  analysis directly — every JOIN and aggregation is a logged, auditable Coral query.
+  The only direct API calls are Gmail extraction and the Sheets write (Coral is
+  read-only); those land rows in the sheet that Coral then reads.
 
 - **Deterministic first, LLM second.** All core insights use rule-based analysis.
   Claude API narrative is optional and never generates numbers — those come from queries.

@@ -2,13 +2,38 @@
 
 **Other agents tell you what to do. CoralCon proves why you're failing, with evidence from the data you already have.**
 
-CoralCon is a local-first career intelligence agent that turns rejection history into an evidence-backed improvement plan by joining GitHub proof-of-work, Notion application outcomes, and LinkedIn profile signals through Coral SQL.
+CoralCon is a local-first career intelligence agent that turns rejection history into an evidence-backed improvement plan by joining GitHub proof-of-work, your Google Sheets application tracker (auto-populated from Gmail rejections), and LinkedIn profile signals through Coral SQL.
+
+## From Gmail to a Coral-Queryable Tracker
+
+You don't keep a tidy spreadsheet of every rejection — your inbox does. CoralCon
+reads rejection emails straight from Gmail, classifies them into structured rows
+(company, role, status, date), and writes them to a Google Sheet you can edit by
+hand. Coral then queries that sheet as `sheets.applications` and JOINs it against
+GitHub and LinkedIn.
+
+```
+Gmail API ──► classify rejections ──► Google Sheet (you manage here)
+                                            │
+                  python -m coralcon.cli sheets-sync (Sheets API)
+                                            ▼
+                                  data/applications.csv
+                                            │
+                                   Coral `sheets` file source
+                                            ▼
+                              SELECT ... FROM sheets.applications
+                                  JOIN github.* JOIN linkedin.*
+```
+
+Gmail extraction and Sheet writes use the Google APIs directly (Coral is a
+read-only query layer and can't write). Everything *analytical* — the queries,
+the cross-source JOINs, the proof log — runs through Coral.
 
 ## Why Coral Is at the Core
 
 Coral SQL is the central data layer of CoralCon. Every piece of career intelligence flows through it.
 
-Without Coral, CoralCon would need three separate API integrations (GitHub REST API, Notion API, LinkedIn GDPR CSV parsing), each with its own authentication, pagination, rate limiting, schema mapping, and error handling. Correlating data across sources would require custom join logic, date alignment, and manual data normalization.
+Without Coral, CoralCon would need three separate API integrations (GitHub REST API, Google Sheets API, LinkedIn GDPR CSV parsing), each with its own authentication, pagination, rate limiting, schema mapping, and error handling. Correlating data across sources would require custom join logic, date alignment, and manual data normalization.
 
 With Coral, the agent asks **one SQL question across all three sources**:
 
@@ -17,7 +42,7 @@ SELECT
   n.role_title, n.status,
   g.commits_count, g.languages,
   l.skills, l.headline
-FROM notion.applications n
+FROM sheets.applications n
 JOIN github.activity g
   ON g.week = date_trunc('week', n.applied_date)
 JOIN linkedin.skills l
@@ -26,7 +51,7 @@ WHERE n.applied_date > DATE_SUB(NOW(), INTERVAL 6 MONTH)
 
 This cross-source JOIN is what makes CoralCon possible. It connects:
 
-- **Notion** (application outcomes: company, role, status, required skills)
+- **Google Sheets** (application outcomes: company, role, status, required skills — populated from Gmail)
 - **GitHub** (proof-of-work: commit cadence, repo languages, activity timeline)
 - **LinkedIn** (profile signals: headline, skills, endorsements, positions)
 
@@ -60,11 +85,11 @@ web dashboard, so it works from any browser, not just the terminal.
 
 | Claim | Evidence Source | Cross-Source JOIN |
 |-------|---------------|-------------------|
-| React roles have 94% rejection rate | `notion.applications` | No |
-| Ghost rate is 70 pts higher in inactive GitHub weeks | `notion.applications` + `github.activity` | Yes |
-| Top skill gap (React) appears in 38 rejected apps but 0 repos | `notion.applications` + `github.profile` + `linkedin.skills` | Yes |
-| LinkedIn headline mismatches applied role categories | `linkedin.profile` + `notion.applications` | Yes |
-| Applications sent 7+ days late have 72% ghost rate | `notion.applications` | No |
+| React roles have 94% rejection rate | `sheets.applications` | No |
+| Ghost rate is 70 pts higher in inactive GitHub weeks | `sheets.applications` + `github.activity` | Yes |
+| Top skill gap (React) appears in 38 rejected apps but 0 repos | `sheets.applications` + `github.profile` + `linkedin.skills` | Yes |
+| LinkedIn headline mismatches applied role categories | `linkedin.profile` + `sheets.applications` | Yes |
+| Applications sent 7+ days late have 72% ghost rate | `sheets.applications` | No |
 
 Every insight includes the query ID, source tables, row count, and supporting numbers. No hallucinated data.
 
@@ -136,10 +161,13 @@ python -m coralcon.cli submit-pack
                |
      +---------+---------+
      |         |         |
-  GitHub    Notion    LinkedIn
+  GitHub    Sheets    LinkedIn
   (repos,   (apps,    (GDPR export:
    events,   status,   skills,
-   profile)  skills)   positions)
+   profile)  dates)    positions)
+               ^
+               |  Gmail API extract + Sheets API write (outside Coral)
+            Gmail rejections
 ```
 
 **Recon Agent** — queries all three sources through Coral SQL, collects raw data.
@@ -147,7 +175,10 @@ python -m coralcon.cli submit-pack
 **Dashboard Agent** — writes structured results to Notion dashboard (when configured).
 **Action Agent** — creates prioritized Notion tasks from insights.
 
-All data retrieval goes through Coral SQL. The agent pipeline never calls GitHub, Notion, or LinkedIn APIs directly.
+All *analysis* goes through Coral SQL — the agent pipeline never queries sources
+directly. The only direct API calls are the Gmail extractor (reading rejection
+emails) and the Sheets writer (saving them to your tracker), because Coral is a
+read-only query layer. Once rows land in the Sheet, Coral takes over.
 
 ## Real Coral Mode
 
@@ -160,21 +191,62 @@ brew install withcoral/tap/coral   # macOS
 
 # Connect sources
 coral source add --interactive github
-coral source add --interactive notion
+coral source add --interactive --file ./coral/sources/sheets/source.yaml
 coral source add --file ./coral/sources/linkedin/source.yaml
 coral source list
 
 # Verify
 coral sql --format json "SELECT * FROM github.repos LIMIT 5"
+coral sql --format json "SELECT role_title, status FROM sheets.applications LIMIT 5"
+```
+
+### Populate your tracker from Gmail
+
+```bash
+# One-time: create a Desktop OAuth client in Google Cloud Console with the
+# Gmail API + Google Sheets API enabled, then point CoralCon at it:
+#   GOOGLE_CLIENT_SECRETS=/path/to/client_secret.json
+#   SHEETS_SPREADSHEET_ID=<id from your Google Sheet URL>
+
+python -m coralcon.cli gmail-extract            # Gmail -> classify -> write to Sheet + CSV
+python -m coralcon.cli gmail-extract --dry-run  # preview without writing
+python -m coralcon.cli sheets-sync              # pull Sheet -> data/applications.csv for Coral
+```
+
+### …or do it entirely from the dashboard (no terminal)
+
+The web app has an **Import** tab that runs the same Gmail extraction in the
+browser — connect Google with one click, then pull rejections into your tracker.
+Imported rows update your report immediately, even where the Coral CLI isn't
+installed (e.g. a free-tier deploy).
+
+For the web flow, create a **Web application** OAuth client (not Desktop) in
+Google Cloud Console with the Gmail + Sheets APIs enabled, and add your site's
+callback as an **Authorized redirect URI**:
+
+```
+http://localhost:8000/oauth2callback          # local
+https://<your-app>.onrender.com/oauth2callback # deployed
+```
+
+While the OAuth app is in "testing", add your Google account as a test user.
+Then point CoralCon at the same client (`GOOGLE_CLIENT_SECRETS` or
+`GOOGLE_OAUTH_CLIENT_ID` + `GOOGLE_OAUTH_CLIENT_SECRET`). If the callback host
+can't be auto-derived, set it explicitly:
+
+```env
+OAUTH_REDIRECT_URI=https://<your-app>.onrender.com/oauth2callback
 ```
 
 Set environment variables in `.env`:
 
 ```env
 CORAL_AVAILABLE=true
-ANTHROPIC_API_KEY=...     # Optional: enables Claude narrative insights
-GITHUB_TOKEN=...          # Used by Coral GitHub source
-NOTION_API_KEY=...        # Used by Coral Notion source
+ANTHROPIC_API_KEY=...               # Optional: classifies emails + narrates insights
+GITHUB_TOKEN=...                    # Used by Coral GitHub source
+GOOGLE_CLIENT_SECRETS=...           # Path to your Google OAuth client_secret.json
+SHEETS_SPREADSHEET_ID=...           # Your Google Sheet id
+SHEETS_CSV_PATH=/abs/path/to/data   # Dir holding applications.csv (the Coral file source)
 ```
 
 Run with real sources:
@@ -206,6 +278,11 @@ LinkedIn export as SQL — [withcoral/coral#994](https://github.com/withcoral/co
 # Ask in plain English (routes to a safe Coral query, narrates real rows)
 python -m coralcon.cli ask "which roles reject me the most?"
 python -m coralcon.cli ask "what skills am I missing?" --no-ai
+
+# Gmail -> Google Sheets tracker (populates sheets.applications for Coral)
+python -m coralcon.cli gmail-extract                 # extract rejections, write to Sheet
+python -m coralcon.cli gmail-extract --dry-run       # preview classification only
+python -m coralcon.cli sheets-sync                   # sync Sheet -> applications.csv
 
 # Core analysis
 python -m coralcon.cli db init --reset               # Create local SQLite DB
@@ -263,8 +340,8 @@ python -m coralcon.cli cohort analyze
 | | Sample Mode | Real Mode |
 |---|---|---|
 | **Purpose** | Deterministic sample mode for reproducible judging | Live analysis with real data |
-| **Data source** | Seeded JSON in `data/sample/` | Coral SQL queries to GitHub, Notion, LinkedIn |
-| **API keys needed** | None | `CORAL_AVAILABLE=true` + source credentials |
+| **Data source** | Seeded JSON in `data/sample/` | Coral SQL over GitHub, Google Sheets (from Gmail), LinkedIn |
+| **API keys needed** | None | `CORAL_AVAILABLE=true` + Google OAuth + source credentials |
 | **Coral required** | No | Yes |
 | **Output** | Identical on every run | Reflects current data |
 

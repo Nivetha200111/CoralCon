@@ -59,7 +59,8 @@ def initialize_database(
 def run_database_query(sql: str) -> list[dict]:
     """Run a CoralCon query against local SQLite-backed tables."""
     ensure_database()
-    sql_lower = sql.lower()
+    # sheets.applications is the primary tracker; alias to the shared routing.
+    sql_lower = sql.lower().replace("sheets.applications", "notion.applications")
 
     if "notion.applications" in sql_lower and "github.activity" in sql_lower:
         return _select_all("github_correlation", order_by="applied_date DESC")

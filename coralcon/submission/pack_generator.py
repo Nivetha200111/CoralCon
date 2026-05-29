@@ -40,18 +40,19 @@ def _readme_submission() -> str:
 ## What It Is
 
 CoralCon is a local-first career intelligence agent that turns rejection history
-into an evidence-backed improvement plan by joining GitHub proof-of-work, Notion
-application outcomes, and LinkedIn profile signals through Coral SQL.
+into an evidence-backed improvement plan by joining GitHub proof-of-work, a Google
+Sheets tracker (auto-filled from Gmail rejections), and LinkedIn profile signals
+through Coral SQL.
 
 ## Why Coral Is Essential
 
 Coral SQL is the central data layer. Every piece of career intelligence flows through it.
 
-Without Coral, CoralCon would need three separate API integrations (GitHub, Notion,
-LinkedIn GDPR), each with custom auth, pagination, schema mapping, and correlation
-logic. With Coral, the agent asks one SQL question across all sources.
+Without Coral, CoralCon would need three separate API integrations (GitHub, Google
+Sheets, LinkedIn GDPR), each with custom auth, pagination, schema mapping, and
+correlation logic. With Coral, the agent asks one SQL question across all sources.
 
-Cross-source JOINs are what make the insights possible. Joining `notion.applications`
+Cross-source JOINs are what make the insights possible. Joining `sheets.applications`
 with `github.activity` proves whether commit cadence correlates with response rate.
 Joining with `linkedin.skills` proves whether profile signals match role requirements.
 
@@ -74,7 +75,7 @@ python -m coralcon.cli submit-pack            # Generate these files
 
 ## Architecture
 
-CLI/Web -> Orchestrator -> Recon Agent -> Coral SQL -> GitHub + Notion + LinkedIn
+CLI/Web -> Orchestrator -> Recon Agent -> Coral SQL -> GitHub + Sheets + LinkedIn
                        -> Analyst Agent (evidence-backed insights)
                        -> Dashboard Agent (Notion writes)
                        -> Action Agent (prioritized tasks)
@@ -98,7 +99,7 @@ Show the problem: hundreds of applications, no signal about what's failing.
 
 ## 0:20-0:50 — Show Coral
 
-"Coral lets me query GitHub, Notion, and LinkedIn as SQL sources."
+"Coral lets me query GitHub, my Google Sheets tracker, and LinkedIn as SQL sources."
 
 Run `python -m coralcon.cli status` to show connected sources.
 Run `python -m coralcon.cli proof` to show the query audit trail.
@@ -107,14 +108,14 @@ Point out: all data retrieval goes through Coral SQL. No direct API calls.
 
 ## 0:50-1:30 — Show Cross-Source Query
 
-"This is the key query — application outcomes from Notion joined with GitHub
+"This is the key query — application outcomes from my Google Sheet joined with GitHub
 activity and LinkedIn skills."
 
 Show the cross-source JOIN in the proof report or web dashboard Coral Proof tab.
 
 ```sql
 SELECT n.role_title, n.status, g.commits_count, l.skills
-FROM notion.applications n
+FROM sheets.applications n
 JOIN github.activity g ON g.week = date_trunc('week', n.applied_date)
 JOIN linkedin.skills l
 ```
@@ -162,7 +163,7 @@ User -> CLI / Web Dashboard
         -> Recon Agent
            -> Coral SQL Layer
               -> GitHub (repos, events, profile)
-              -> Notion (applications, status, skills)
+              -> Google Sheets (applications, status, skills) [from Gmail]
               -> LinkedIn (GDPR export: skills, positions, headline)
         -> Analyst Agent
            -> Deterministic rule-based insights
@@ -188,8 +189,10 @@ User -> CLI / Web Dashboard
 
 ## Key Design Decisions
 
-- **Coral SQL is the only data access path.** The agent never calls GitHub, Notion,
-  or LinkedIn APIs directly. This ensures all data retrieval is logged and auditable.
+- **Coral SQL is the only analysis path.** The agent never queries sources for
+  analysis directly — every JOIN and aggregation is a logged, auditable Coral query.
+  The only direct API calls are Gmail extraction and the Sheets write (Coral is
+  read-only); those land rows in the sheet that Coral then reads.
 
 - **Deterministic first, LLM second.** All core insights use rule-based analysis.
   Claude API narrative is optional and never generates numbers — those come from queries.

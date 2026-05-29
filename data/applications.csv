@@ -1,0 +1,9 @@
+id,company,role_title,status,applied_date,responded_date,required_skills,salary_range,source,notes
+app_001,Stripe,React Frontend Engineer,ghosted,2025-01-07,,React;TypeScript;Next.js,$140k-$180k,Sheets,
+app_002,Linear,Python Developer,interviewing,2025-01-21,,Python;FastAPI;PostgreSQL,$130k-$170k,Sheets,
+app_003,Figma,Backend Engineer,offer,2025-01-28,,Python;System Design;PostgreSQL,$150k-$195k,Sheets,
+app_004,PlanetScale,DevOps Engineer,rejected,2025-02-04,,Docker;Kubernetes;Terraform,$135k-$175k,Sheets,
+app_005,GitHub,AI/ML Engineer,interviewing,2025-03-04,,Python;Machine Learning;TypeScript,$160k-$210k,Sheets,
+app_006,Scale AI,React Frontend Engineer,rejected,2025-04-22,,React;TypeScript;GraphQL,$145k-$185k,Sheets,
+app_007,Loom,Backend Engineer,applied,2025-05-14,,Python;Redis;System Design,$140k-$180k,Sheets,
+app_008,Plaid,AI/ML Engineer,applied,2025-05-20,,Python;Machine Learning;PostgreSQL,$155k-$205k,Sheets,

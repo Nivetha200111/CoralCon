@@ -12,7 +12,7 @@
 - **Severity:** high
 - **Confidence:** 84%
 - **Query:** q_005
-- **Sources:** notion.applications
+- **Sources:** sheets.applications
 - **Action:** Pause cold applications to React Frontend Engineer roles and ship one targeted proof-of-work project.
 
 ### React proof gap
@@ -20,7 +20,7 @@
 - **Severity:** high
 - **Confidence:** 88%
 - **Query:** q_007
-- **Sources:** github.profile, linkedin.skills, notion.applications
+- **Sources:** github.profile, linkedin.skills, sheets.applications
 - **Action:** Build and pin one React project within 7 days.
 
 ### GitHub activity signal
@@ -28,7 +28,7 @@
 - **Severity:** high
 - **Confidence:** 80%
 - **Query:** q_006
-- **Sources:** github.activity, notion.applications
+- **Sources:** github.activity, sheets.applications
 - **Action:** Keep a steady commit cadence while applying, even if it is one focused commit per day.
 
 ### Follow-up window
@@ -36,5 +36,5 @@
 - **Severity:** medium
 - **Confidence:** 78%
 - **Query:** q_009
-- **Sources:** notion.applications
+- **Sources:** sheets.applications
 - **Action:** Send follow-up emails to the hot queue today.

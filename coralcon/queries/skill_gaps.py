@@ -13,7 +13,7 @@ FROM (
     (l.name LIKE '%' || skill_name || '%') as in_linkedin
   FROM (
     SELECT UNNEST(n.required_skills) as skill_name
-    FROM notion.applications n
+    FROM sheets.applications n
     WHERE n.status = 'rejected'
   ) skills
   JOIN github.profile g

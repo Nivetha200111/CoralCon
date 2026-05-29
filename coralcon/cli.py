@@ -347,7 +347,7 @@ def rejections(ai):
     """Rejection rate breakdown by role type."""
     fmt.print_header("REJECTION PATTERNS")
 
-    with fmt.spinner("Querying notion.applications..."):
+    with fmt.spinner("Querying sheets.applications..."):
         patterns = rejection_patterns.fetch()
 
     fmt.print_rejection_table(patterns)
@@ -489,6 +489,67 @@ def portfolio_check(url):
     fmt.print_portfolio_signal(portfolio)
 
 
+@cli.command("gmail-extract")
+@click.option("--query", default=None, help="Override the Gmail search query")
+@click.option("--max", "max_results", default=50, help="Max emails to scan")
+@click.option("--no-ai", is_flag=True, help="Classify with keyword heuristics only")
+@click.option("--write/--no-write", default=True, help="Write results to the Google Sheet")
+@click.option("--dry-run", is_flag=True, help="Print extracted rows without writing")
+def gmail_extract(query, max_results, no_ai, write, dry_run):
+    """Extract rejection emails from Gmail into your application tracker.
+
+    Gmail API (read-only) -> classify -> Google Sheet -> synced CSV that Coral
+    queries as sheets.applications.
+    """
+    from coralcon.gmail.extractor import extract_rejections
+
+    fmt.print_header("GMAIL REJECTION EXTRACT", "Scanning Gmail for application outcomes...")
+    with fmt.spinner("Searching Gmail and classifying emails..."):
+        rows = extract_rejections(query=query, max_results=max_results, use_ai=not no_ai)
+
+    if not rows:
+        console.print("\n  [yellow]No rejection emails matched. Try --query to widen the search.[/yellow]\n")
+        return
+
+    console.print(f"\n  [bright_green]Found {len(rows)} application outcomes:[/bright_green]\n")
+    for row in rows[:25]:
+        console.print(
+            f"  [dim]·[/dim] [white]{row['company'] or '?'}[/white] "
+            f"[dim]—[/dim] {row['role_title'] or 'role unknown'} "
+            f"[dim]({row['status']}, {row['responded_date']})[/dim]"
+        )
+
+    if dry_run or not write:
+        console.print("\n  [dim]Dry run — nothing written. Drop --dry-run to push to your Sheet.[/dim]\n")
+        return
+
+    from coralcon.sheets.client import append_applications, sync_to_csv
+
+    with fmt.spinner("Writing new rows to your Google Sheet..."):
+        added = append_applications(rows)
+        synced = sync_to_csv()
+    console.print(
+        f"\n  [bright_green]Wrote {added} new rows[/bright_green] "
+        f"[dim]· synced {synced} rows to data/applications.csv for Coral[/dim]\n"
+    )
+
+
+@cli.command("sheets-sync")
+@click.option("--spreadsheet-id", default=None, help="Override SHEETS_SPREADSHEET_ID")
+def sheets_sync(spreadsheet_id):
+    """Pull your Google Sheet down to data/applications.csv for the Coral source."""
+    from coralcon.sheets.client import sync_to_csv
+
+    fmt.print_header("SHEETS SYNC", "Pulling your Google Sheet into the Coral file source...")
+    with fmt.spinner("Reading the sheet and writing applications.csv..."):
+        count = sync_to_csv(spreadsheet_id)
+    console.print(
+        f"\n  [bright_green]Synced {count} applications[/bright_green] "
+        f"[dim]-> data/applications.csv. Query with:[/dim]\n"
+        f"  [bright_cyan]coral sql \"SELECT role_title, status FROM sheets.applications\"[/bright_cyan]\n"
+    )
+
+
 @cli.command()
 def status():
     """Check Coral connection and data sources."""
@@ -500,7 +561,8 @@ def status():
     items = [
         ("Coral CLI", conn["coral_installed"]),
         ("GitHub source", conn["github_connected"]),
-        ("Notion source", conn["notion_connected"]),
+        ("Sheets source", conn.get("sheets_connected", False)),
+        ("Gmail source", conn.get("gmail_connected", False)),
         ("LinkedIn source", conn["linkedin_connected"]),
     ]
 

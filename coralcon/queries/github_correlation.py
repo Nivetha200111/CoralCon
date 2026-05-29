@@ -9,7 +9,7 @@ SELECT
   g.commits_count,
   g.active_repos,
   g.languages
-FROM notion.applications n
+FROM sheets.applications n
 JOIN github.activity g
   ON g.week = date_trunc('week', n.applied_date)
 WHERE n.status IN ('rejected', 'ghosted', 'interviewing', 'offer')
@@ -24,7 +24,7 @@ SELECT
   ROUND(
     SUM(CASE WHEN n.status = 'ghosted' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1
   ) as ghost_rate
-FROM notion.applications n
+FROM sheets.applications n
 JOIN github.activity g
   ON g.week = date_trunc('week', n.applied_date)
 GROUP BY week_type

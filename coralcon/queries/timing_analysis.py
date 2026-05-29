@@ -16,7 +16,7 @@ SELECT
   ROUND(
     SUM(CASE WHEN status = 'ghosted' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1
   ) as ghost_rate
-FROM notion.applications
+FROM sheets.applications
 GROUP BY timing_bucket
 ORDER BY
   CASE timing_bucket

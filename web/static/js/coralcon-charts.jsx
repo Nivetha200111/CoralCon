@@ -5,16 +5,17 @@ const { useRef, useEffect, useState, useCallback } = React;
 /* ====== CHART.JS THEME HELPER ====== */
 function getChartColors(theme, accent) {
   const isDark = theme === 'dark';
+  // Editorial palette: rust primary, deep forest secondary, warm inks.
   return {
-    grid: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
-    text: isDark ? '#7e90ad' : '#556682',
-    gold: accent || '#f0a500',
-    teal: isDark ? '#20c9a0' : '#0ea87e',
-    red: isDark ? '#ff6b6b' : '#dc2626',
-    blue: isDark ? '#4e8cff' : '#2563eb',
-    purple: isDark ? '#a78bfa' : '#7c3aed',
-    orange: isDark ? '#fb923c' : '#ea580c',
-    bgCard: isDark ? '#13203a' : '#ffffff',
+    grid: isDark ? 'rgba(236,229,216,0.08)' : 'rgba(27,26,23,0.08)',
+    text: isDark ? '#b3a994' : '#5c574d',
+    gold: accent || (isDark ? '#d96a4f' : '#b4452f'),
+    teal: isDark ? '#6fae9a' : '#3f6b5e',
+    red: isDark ? '#df6b54' : '#b4452f',
+    blue: isDark ? '#8aa6c2' : '#3a5a78',
+    purple: isDark ? '#b59bc9' : '#6b4e8a',
+    orange: isDark ? '#d68a4a' : '#c2722c',
+    bgCard: isDark ? '#221f18' : '#fffdf8',
   };
 }
 

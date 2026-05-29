@@ -17,7 +17,7 @@ SELECT
   ROUND(
     (SUM(CASE WHEN n.status IN ('interviewing', 'offer') THEN 1 ELSE 0 END)) * 100.0 / COUNT(*), 1
   ) as response_rate
-FROM notion.applications n
+FROM sheets.applications n
 GROUP BY n.role_title
 ORDER BY rejection_rate DESC
 """

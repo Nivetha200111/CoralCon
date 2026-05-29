@@ -18,7 +18,7 @@ SELECT
       THEN 'Last chance follow-up (8% success rate)'
     ELSE 'Move on — mark as ghosted'
   END as recommended_action
-FROM notion.applications n
+FROM sheets.applications n
 WHERE n.status = 'applied'
   AND DATEDIFF('day', n.applied_date, CURRENT_DATE) >= 7
 ORDER BY days_waiting ASC

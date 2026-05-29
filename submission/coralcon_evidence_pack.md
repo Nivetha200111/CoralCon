@@ -7,7 +7,8 @@
 
 CoralCon is a local-first career intelligence agent that turns rejection
 history into an evidence-backed improvement plan by joining GitHub proof-of-work,
-Notion application outcomes, and LinkedIn profile signals through Coral SQL.
+a Google Sheets tracker (auto-filled from Gmail rejections), and LinkedIn
+profile signals through Coral SQL.
 
 ## Why Coral Matters
 
@@ -19,19 +20,19 @@ correlation logic. With Coral, the agent asks one SQL question across all source
 
 - **Total Coral queries:** 9
 - **Cross-source JOINs:** 2
-- **Sources queried:** github.activity, github.profile, linkedin.profile, linkedin.skills, notion.applications
+- **Sources queried:** github.activity, github.profile, linkedin.profile, linkedin.skills, sheets.applications
 - **Best query:** skill_gap_detection
 - **Best query rows:** 12
-- **Best query time:** 0.06ms
+- **Best query time:** 1.46ms
 - **Cached queries:** 0
 - **Mode:** sample
 
 ## Architecture
 
 ```
-CLI/Web -> Orchestrator -> Recon Agent -> Coral SQL -> GitHub + Notion + LinkedIn
+Gmail (extract) -> Google Sheet -> data/applications.csv
+CLI/Web -> Orchestrator -> Recon Agent -> Coral SQL -> GitHub + Sheets + LinkedIn
                        -> Analyst Agent (evidence-backed insights)
-                       -> Dashboard Agent (Notion writes)
                        -> Action Agent (prioritized tasks)
 ```
 
@@ -40,7 +41,7 @@ CLI/Web -> Orchestrator -> Recon Agent -> Coral SQL -> GitHub + Notion + LinkedI
 | Source | Coral Table | Data |
 |--------|------------|------|
 | GitHub | `github.activity`, `github.profile`, `github.repos` | Commit cadence, repo languages, public events |
-| Notion | `notion.applications` | Company, role, status, required skills, dates |
+| Google Sheets | `sheets.applications` | Company, role, status, required skills, dates (from Gmail) |
 | LinkedIn | `linkedin.skills`, `linkedin.profile`, `linkedin.positions` | GDPR export: skills, endorsements, headline |
 
 ## Analysis Results
@@ -58,7 +59,7 @@ CLI/Web -> Orchestrator -> Recon Agent -> Coral SQL -> GitHub + Notion + LinkedI
 **Severity:** high
 **Confidence:** 84%
 **Evidence query:** q_005
-**Sources:** notion.applications
+**Sources:** sheets.applications
 **Rows used:** 38
 **Root cause:** The role category is currently outperforming the visible proof-of-work on the profile.
 **Action:** Pause cold applications to React Frontend Engineer roles and ship one targeted proof-of-work project.
@@ -70,7 +71,7 @@ CLI/Web -> Orchestrator -> Recon Agent -> Coral SQL -> GitHub + Notion + LinkedI
 **Severity:** high
 **Confidence:** 88%
 **Evidence query:** q_007
-**Sources:** github.profile, linkedin.skills, notion.applications
+**Sources:** github.profile, linkedin.skills, sheets.applications
 **Rows used:** 38
 **Root cause:** The job descriptions ask for the skill, but the public evidence is weak or absent.
 **Action:** Build and pin one React project within 7 days.
@@ -82,7 +83,7 @@ CLI/Web -> Orchestrator -> Recon Agent -> Coral SQL -> GitHub + Notion + LinkedI
 **Severity:** high
 **Confidence:** 80%
 **Evidence query:** q_006
-**Sources:** github.activity, notion.applications
+**Sources:** github.activity, sheets.applications
 **Rows used:** 26
 **Root cause:** Recruiter-visible activity drops during parts of the application cycle.
 **Action:** Keep a steady commit cadence while applying, even if it is one focused commit per day.
@@ -94,7 +95,7 @@ CLI/Web -> Orchestrator -> Recon Agent -> Coral SQL -> GitHub + Notion + LinkedI
 **Severity:** medium
 **Confidence:** 78%
 **Evidence query:** q_009
-**Sources:** notion.applications
+**Sources:** sheets.applications
 **Rows used:** 10
 **Root cause:** Pending applications are aging without a second touch.
 **Action:** Send follow-up emails to the hot queue today.
@@ -104,24 +105,24 @@ CLI/Web -> Orchestrator -> Recon Agent -> Coral SQL -> GitHub + Notion + LinkedI
 
 ### github_activity_correlation (q_006)
 
-- Sources: github.activity, notion.applications
+- Sources: github.activity, sheets.applications
 - Rows: 26
-- Execution: 0.09ms
+- Execution: 1.19ms
 - Cached: no
 
 ```sql
-SELECT n.company, n.applied_date, n.status, n.role_title, g.commits_count, g.active_repos, g.languages FROM notion.applications n JOIN github.activity g ON g.week = date_trunc('week', n.applied_date) WHERE n.status IN ('rejected', 'ghosted', 'interviewing', 'offer') ORDER BY n.applied_date DESC
+SELECT n.company, n.applied_date, n.status, n.role_title, g.commits_count, g.active_repos, g.languages FROM sheets.applications n JOIN github.activity g ON g.week = date_trunc('week', n.applied_date) WHERE n.status IN ('rejected', 'ghosted', 'interviewing', 'offer') ORDER BY n.applied_date DESC
 ```
 
 ### skill_gap_detection (q_007)
 
-- Sources: github.profile, linkedin.skills, notion.applications
+- Sources: github.profile, linkedin.skills, sheets.applications
 - Rows: 12
-- Execution: 0.06ms
+- Execution: 1.46ms
 - Cached: no
 
 ```sql
-SELECT skill, COUNT(*) as times_required, MAX(CASE WHEN in_github = true THEN 1 ELSE 0 END) as in_github, MAX(CASE WHEN in_linkedin = true THEN 1 ELSE 0 END) as in_linkedin FROM ( SELECT skill_name as skill, (g.languages LIKE '%' || skill_name || '%') as in_github, (l.name LIKE '%' || skill_name || '%') as in_linkedin FROM ( SELECT UNNEST(n.required_skills) as skill_name FROM notion.applications n WHERE n.status = 'rejected' ) skills JOIN github.profile g JOIN linkedin.skills l ) sub GROUP BY skill ORDER BY times_required DESC LIMIT 15
+SELECT skill, COUNT(*) as times_required, MAX(CASE WHEN in_github = true THEN 1 ELSE 0 END) as in_github, MAX(CASE WHEN in_linkedin = true THEN 1 ELSE 0 END) as in_linkedin FROM ( SELECT skill_name as skill, (g.languages LIKE '%' || skill_name || '%') as in_github, (l.name LIKE '%' || skill_name || '%') as in_linkedin FROM ( SELECT UNNEST(n.required_skills) as skill_name FROM sheets.applications n WHERE n.status = 'rejected' ) skills JOIN github.profile g JOIN linkedin.skills l ) sub GROUP BY skill ORDER BY times_required DESC LIMIT 15
 ```
 
 ## Sample Mode vs Real Mode
@@ -129,7 +130,7 @@ SELECT skill, COUNT(*) as times_required, MAX(CASE WHEN in_github = true THEN 1 
 **Sample mode** uses deterministic seeded data from `data/sample/` for reproducible
 judging. Every run produces identical results. No API keys or Coral installation needed.
 
-**Real mode** connects to actual GitHub, Notion, and LinkedIn data through Coral SQL.
+**Real mode** connects to actual GitHub, Google Sheets (from Gmail), and LinkedIn data through Coral SQL.
 Set `CORAL_AVAILABLE=true` and configure source credentials.
 
 Both modes use the same four-agent pipeline and produce the same evidence artifacts.
@@ -155,7 +156,8 @@ python -m coralcon.cli serve                  # Web dashboard at :8000
 ## Known Limitations
 
 - LinkedIn source requires manual GDPR data export (API access is restricted)
-- Real-mode Notion integration reads simple table blocks, not database views
+- Gmail extraction + Sheets writes use the Google APIs directly (Coral is read-only);
+  Coral reads the synced sheet via the `sheets` file source
 - LLM narrative insights require an Anthropic API key; the rule-based fallback
   provides all core insights without it
 - Cohort mode currently uses anonymized sample candidates

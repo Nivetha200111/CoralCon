@@ -3,7 +3,7 @@
 import os
 from fastapi import FastAPI, Request
 from pydantic import BaseModel
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.concurrency import run_in_threadpool
@@ -78,6 +78,123 @@ async def ask_page(request: Request):
     return templates.TemplateResponse(
         request=request, name="index.html", context={"request": request}
     )
+
+
+@app.get("/sources", response_class=HTMLResponse)
+async def sources_page(request: Request):
+    return templates.TemplateResponse(
+        request=request, name="index.html", context={"request": request}
+    )
+
+
+# ---------------------------------------------------------------------------
+# Google / Gmail import — "everything on the site"
+#
+# The dashboard lets the user connect Google and import rejections from Gmail
+# without touching a terminal. OAuth uses the redirect (Authorization Code)
+# flow so it works on a deployed host with no local browser. Imported rows are
+# ingested into SQLite so the dashboard updates immediately, even where the
+# Coral CLI isn't installed (e.g. the free-tier deployment).
+# ---------------------------------------------------------------------------
+
+
+@app.get("/api/google/status")
+async def api_google_status():
+    from coralcon.google import web_auth
+
+    return await run_in_threadpool(web_auth.status)
+
+
+@app.get("/api/google/connect")
+async def api_google_connect(request: Request):
+    from coralcon.google import web_auth
+
+    try:
+        auth_url, _state = await run_in_threadpool(
+            web_auth.authorization_url, str(request.base_url)
+        )
+    except RuntimeError as exc:
+        return JSONResponse({"error": str(exc)}, status_code=400)
+    return RedirectResponse(auth_url)
+
+
+@app.get("/oauth2callback")
+async def oauth2_callback(request: Request):
+    from coralcon.google import web_auth
+
+    params = request.query_params
+    if params.get("error"):
+        return RedirectResponse(f"/sources?google=error&reason={params.get('error')}")
+    code = params.get("code")
+    if not code:
+        return RedirectResponse("/sources?google=error&reason=missing_code")
+    try:
+        await run_in_threadpool(
+            web_auth.exchange_code,
+            code,
+            str(request.base_url),
+            str(request.url),
+        )
+    except Exception as exc:  # noqa: BLE001 - surface any OAuth error to the user
+        return RedirectResponse(f"/sources?google=error&reason={type(exc).__name__}")
+    return RedirectResponse("/sources?google=connected")
+
+
+class GmailImportRequest(BaseModel):
+    query: str | None = None
+    max_results: int = 50
+    use_ai: bool = True
+    write_sheet: bool = True
+
+
+@app.post("/api/gmail/import")
+async def api_gmail_import(payload: GmailImportRequest):
+    return await run_in_threadpool(_run_gmail_import, payload)
+
+
+def _run_gmail_import(payload: GmailImportRequest) -> dict:
+    from coralcon.google import auth as google_auth
+    from coralcon.gmail import extractor
+    from coralcon import ingest
+
+    if not google_auth.has_credentials():
+        return {"ok": False, "error": "Google account not connected. Click Connect Google first."}
+
+    try:
+        rows = extractor.extract_rejections(
+            query=payload.query or None,
+            max_results=max(1, min(payload.max_results, 200)),
+            use_ai=payload.use_ai and bool(os.getenv("ANTHROPIC_API_KEY")),
+        )
+    except Exception as exc:  # noqa: BLE001
+        return {"ok": False, "error": f"Gmail extraction failed: {exc}"}
+
+    sheet_written = False
+    sheet_error = None
+    spreadsheet_id = os.getenv("SHEETS_SPREADSHEET_ID")
+    if payload.write_sheet and spreadsheet_id and rows:
+        try:
+            from coralcon.sheets import client as sheets_client
+
+            sheets_client.append_applications(rows)
+            sheets_client.sync_to_csv(spreadsheet_id, sheets_client._csv_path())
+            sheet_written = True
+        except Exception as exc:  # noqa: BLE001
+            sheet_error = str(exc)
+
+    # Always reflect the import in the dashboard, Coral or not.
+    summary = ingest.ingest_applications(rows)
+
+    return {
+        "ok": True,
+        "extracted": len(rows),
+        "added": summary.get("added", 0),
+        "totalApplications": summary.get("total_applications", 0),
+        "sheetWritten": sheet_written,
+        "sheetError": sheet_error,
+        "rowsPreview": rows[:8],
+        "usingSampleData": os.getenv("CORAL_AVAILABLE", "false").lower() != "true",
+    }
 
 
 @app.get("/api/summary")
@@ -344,7 +461,7 @@ def _map_insights(
                 "rootCause": f"Your public profile doesn't match what {role} roles are looking for. Recruiters see the mismatch immediately.",
                 "action": actions[0] if actions else "Fix your profile for this role type or stop applying until you do.",
                 "impact": f"Either fix the gap or redirect those {total} applications to roles where your profile is stronger.",
-                "evidence": {"queryId": "rejection_patterns", "rows": total, "sources": ["notion.applications"]},
+                "evidence": {"queryId": "rejection_patterns", "rows": total, "sources": ["sheets.applications"]},
                 "confidence": 0.82,
             }
         )
@@ -371,7 +488,7 @@ def _map_insights(
                 "rootCause": f"Recruiters look for {skill} on your GitHub and LinkedIn. When they don't find it, your application gets filtered out.",
                 "action": next((item for item in actions if skill in item), actions[0] if actions else f"Build a project using {skill} and add it to your profile."),
                 "impact": f"Fixing this one gap affects {count} roles you're targeting.",
-                "evidence": {"queryId": "skill_gap_detection", "rows": count, "sources": ["notion.applications", "github.activity", "linkedin.skills"]},
+                "evidence": {"queryId": "skill_gap_detection", "rows": count, "sources": ["sheets.applications", "github.activity", "linkedin.skills"]},
                 "confidence": 0.86,
             }
         )
@@ -387,7 +504,7 @@ def _map_insights(
                 "rootCause": "Recruiters check your GitHub. When the contribution graph is empty, it signals disengagement.",
                 "action": next((item for item in actions if "GitHub" in item), "Commit something every day during your search, even small things."),
                 "impact": "Active GitHub weeks show significantly higher response rates.",
-                "evidence": {"queryId": "github_activity_correlation", "rows": 1, "sources": ["github.activity", "notion.applications"]},
+                "evidence": {"queryId": "github_activity_correlation", "rows": 1, "sources": ["github.activity", "sheets.applications"]},
                 "confidence": 0.78,
             }
         )

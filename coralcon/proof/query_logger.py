@@ -77,10 +77,12 @@ def extract_sources(sql: str) -> list[str]:
 
 
 def infer_query_name(sql: str) -> str:
-    lowered = sql.lower()
+    # sheets.applications is the primary tracker; treat the legacy notion name
+    # as an alias so older logs and queries still classify correctly.
+    lowered = sql.lower().replace("notion.applications", "sheets.applications")
     if "required_skills" in lowered and "linkedin.skills" in lowered:
         return "skill_gap_detection"
-    if "github.activity" in lowered and "notion.applications" in lowered:
+    if "github.activity" in lowered and "sheets.applications" in lowered:
         return "github_activity_correlation"
     if "datediff" in lowered:
         return "followup_tracker"
@@ -94,7 +96,7 @@ def infer_query_name(sql: str) -> str:
         return "linkedin_skills"
     if "github.activity" in lowered:
         return "github_activity"
-    if "notion.applications" in lowered:
+    if "sheets.applications" in lowered:
         return "applications"
     return "coral_query"
 
