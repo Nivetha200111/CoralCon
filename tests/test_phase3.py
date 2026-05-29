@@ -2,9 +2,11 @@ import os
 
 from coralcon.agents.analyst import AnalystAgent
 from coralcon.agents.recon import ReconAgent
+from coralcon.database import database_status, initialize_database
 from coralcon.demo.judge_demo import run_judge_demo
 from coralcon.portfolio.inspector import _detect_skills
 from coralcon.proof.query_logger import get_query_log, reset_query_log
+from coralcon.queries import rejection_patterns
 from coralcon.submission.pack_generator import generate_submission_pack
 
 
@@ -49,3 +51,17 @@ def test_portfolio_skill_detection_is_deterministic():
         "react",
         "typescript",
     ]
+
+
+def test_sqlite_database_seeds_and_serves_queries(tmp_path, monkeypatch):
+    monkeypatch.setenv("CORAL_AVAILABLE", "false")
+    monkeypatch.setenv("CORALCON_DATA_BACKEND", "sqlite")
+    monkeypatch.setenv("CORALCON_DB_PATH", str(tmp_path / "coralcon.sqlite"))
+
+    db_path = initialize_database(reset=True)
+    status = database_status(db_path)
+
+    assert status["exists"]
+    assert status["tables"]["applications"] == 8
+    assert status["tables"]["rejection_patterns"] == 6
+    assert sum(row["total"] for row in rejection_patterns.fetch()) == 147

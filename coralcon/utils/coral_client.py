@@ -12,6 +12,7 @@ import time
 from pathlib import Path
 from datetime import date
 
+from coralcon.database import run_database_query
 from coralcon.proof.query_logger import log_query
 
 SAMPLE_DATA_DIR = Path(__file__).parent.parent.parent / "data" / "sample"
@@ -20,6 +21,10 @@ _QUERY_CACHE: dict[str, list[dict]] = {}
 
 def _coral_available() -> bool:
     return os.getenv("CORAL_AVAILABLE", "false").lower() == "true"
+
+
+def _data_backend() -> str:
+    return os.getenv("CORALCON_DATA_BACKEND", "sqlite").strip().lower()
 
 
 def run_query(sql: str) -> list[dict]:
@@ -34,8 +39,10 @@ def run_query(sql: str) -> list[dict]:
 
     if _coral_available():
         rows = _run_real_query(sql)
-    else:
+    elif _data_backend() == "json":
         rows = _run_sample_query(sql)
+    else:
+        rows = run_database_query(sql)
 
     if use_cache:
         _QUERY_CACHE[sql] = rows

@@ -9,6 +9,9 @@ venv/
 env/
 .env
 .coral-config/
+*.sqlite
+*.sqlite3
+*.db
 dist/
 build/
 *.egg-info/
