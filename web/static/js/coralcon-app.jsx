@@ -40,6 +40,50 @@ function CoralConLogo({ size = 36 }) {
   );
 }
 
+/* ====== LIVE / SAMPLE STATUS PILL ====== */
+function LiveStatusPill() {
+  const [status, setStatus] = useAppState(null);
+
+  useAppEffect(() => {
+    let cancelled = false;
+    fetch('/api/status')
+      .then(r => r.ok ? r.json() : null)
+      .then(s => { if (!cancelled) setStatus(s); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
+  if (!status) return null;
+
+  const live = !status.using_sample_data && status.coral_installed;
+  const connected = ['github', 'notion', 'linkedin']
+    .filter(src => status[`${src}_connected`])
+    .map(src => src.charAt(0).toUpperCase() + src.slice(1));
+
+  return (
+    <div
+      className="cc-source-pill"
+      style={{
+        display: 'flex', alignItems: 'center', gap: 6,
+        margin: '0 var(--cc-sp-3) var(--cc-sp-2)',
+        borderColor: live ? '#20c9a0' : 'var(--cc-border)',
+      }}
+      title={live
+        ? `Coral connected: ${connected.join(', ') || 'sources'}`
+        : 'Running on bundled demo data'}
+    >
+      <span style={{
+        width: 8, height: 8, borderRadius: '50%',
+        background: live ? '#20c9a0' : '#f0a500',
+        boxShadow: live ? '0 0 8px #20c9a0' : 'none',
+      }} />
+      {live
+        ? <>Live via Coral{connected.length ? ` · ${connected.join(' · ')}` : ''}</>
+        : <>Demo data</>}
+    </div>
+  );
+}
+
 /* ====== MAIN APP ====== */
 function CoralConApp() {
   const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{"pirateIntensity":"subtle","accentColor":"#f0a500","chartStyle":"outlined","theme":"dark"}/*EDITMODE-END*/;
@@ -125,6 +169,7 @@ function CoralConApp() {
         </nav>
 
         <div className="cc-sidebar-footer">
+          <LiveStatusPill />
           <button className="cc-theme-toggle" onClick={toggleTheme}>
             <CCIcon name={tweaks.theme === 'dark' ? 'sun' : 'moon'} size={16} />
             {tweaks.theme === 'dark' ? 'Light Mode' : 'Dark Mode'}

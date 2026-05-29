@@ -32,6 +32,30 @@ This cross-source JOIN is what makes CoralCon possible. It connects:
 
 CoralCon logs every Coral query as judge-verifiable proof. Run `python -m coralcon.cli proof` to see the full audit trail.
 
+## Ask in Plain English (the LLM never writes SQL)
+
+Ask CoralCon a question in natural language, from the CLI or the web dashboard:
+
+```bash
+python -m coralcon.cli ask "which roles reject me the most?"
+python -m coralcon.cli ask "when should I apply to get a response?"
+```
+
+Most "text-to-SQL" agents let the model generate SQL — which means hallucinated
+columns, unbounded queries, and made-up numbers. CoralCon does the opposite:
+
+1. A deterministic **router** classifies the question to one of a fixed set of
+   schema-safe Coral queries. The LLM is used *only* as an intent classifier
+   (and falls back to keyword matching with no API key at all).
+2. The chosen Coral query runs unchanged — bounded, safe, and identical every time.
+3. The LLM then *narrates the real rows*. It never invents a number, and every
+   answer ships with proof: the exact query that ran, the source tables joined,
+   and the row count.
+
+This keeps the agent fast, safe, and verifiable — the LLM is an interface layer,
+never the source of truth. The same `ask` endpoint backs the **Ask** tab in the
+web dashboard, so it works from any browser, not just the terminal.
+
 ## What CoralCon Proves
 
 | Claim | Evidence Source | Cross-Source JOIN |
@@ -172,9 +196,17 @@ LinkedIn API access is restricted. CoralCon uses a Coral file source spec that r
 
 The source spec lives in `coral/sources/linkedin/source.yaml`. To get your data: LinkedIn Settings > Data Privacy > Get a copy of your data.
 
+**Contributed upstream:** the LinkedIn source spec has been submitted as a pull
+request to the official Coral source library so any Coral user can query their
+LinkedIn export as SQL — [withcoral/coral#994](https://github.com/withcoral/coral/pull/994).
+
 ## All CLI Commands
 
 ```bash
+# Ask in plain English (routes to a safe Coral query, narrates real rows)
+python -m coralcon.cli ask "which roles reject me the most?"
+python -m coralcon.cli ask "what skills am I missing?" --no-ai
+
 # Core analysis
 python -m coralcon.cli db init --reset               # Create local SQLite DB
 python -m coralcon.cli db status                     # Show DB table counts
