@@ -27,6 +27,11 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
+# Google frequently returns extra scopes (e.g. `openid`) beyond what we asked
+# for, which makes oauthlib raise a "scope has changed" error during the token
+# exchange. Relax that check so the exchange succeeds.
+os.environ.setdefault("OAUTHLIB_RELAX_TOKEN_SCOPE", "1")
+
 from . import auth
 
 # Where Google sends the user back. If unset we derive it from the request.
@@ -85,6 +90,11 @@ def _build_flow(redirect: str):
             str(Path(secrets_path).expanduser()),
             scopes=auth.SCOPES,
             redirect_uri=redirect,
+            # No PKCE: the consent request and the token exchange happen in two
+            # separate stateless serverless invocations, so a per-request
+            # code_verifier can't survive between them. A confidential "web"
+            # client authenticates with its client_secret, so PKCE isn't needed.
+            autogenerate_code_verifier=False,
         )
     else:
         config = _web_client_config_from_env()
@@ -97,7 +107,8 @@ def _build_flow(redirect: str):
                 f"the callback URL ({redirect}) as an authorized redirect URI."
             )
         flow = Flow.from_client_config(
-            config, scopes=auth.SCOPES, redirect_uri=redirect
+            config, scopes=auth.SCOPES, redirect_uri=redirect,
+            autogenerate_code_verifier=False,
         )
     return flow
 
