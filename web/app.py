@@ -291,6 +291,13 @@ async def api_actions():
     return {"actions": actions}
 
 
+@app.get("/api/morning")
+async def api_morning():
+    from coralcon.agents.standup import build_standup
+
+    return await run_in_threadpool(build_standup)
+
+
 @app.get("/api/proof")
 async def api_proof():
     ps = proof_summary()

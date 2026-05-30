@@ -99,71 +99,25 @@ def morning(no_ai):
     application outcomes, real GitHub languages, and LinkedIn skills through Coral
     and tells you the single highest-leverage move for today.
     """
-    from datetime import date
-
-    fmt.print_header("MORNING STANDUP", date.today().strftime("%A, %B %d, %Y"))
+    from coralcon.agents.standup import build_standup
 
     with fmt.spinner("Joining Sheets + GitHub + LinkedIn via Coral..."):
-        patterns = rejection_patterns.fetch()
-        gaps = skill_gaps.fetch()
-        followups = followup_tracker.fetch()
-        github_data = github_correlation.fetch()
-        signal = recommender.compute_github_signal(github_data, github_data)
+        standup = build_standup()
 
-    total = sum(int(p.get("total", 0)) for p in patterns)
-    responses = sum(int(p.get("interviewed", 0)) + int(p.get("offers", 0)) for p in patterns)
-    response_rate = round(responses * 100.0 / total, 1) if total else 0.0
+    fmt.print_header("MORNING STANDUP", standup["date_label"])
 
-    console.print()
+    response_rate = standup["response_rate"]
     rate_color = "bright_green" if response_rate >= 15 else ("yellow" if response_rate >= 5 else "bright_red")
+    console.print()
     console.print(
-        f"  [dim]Where you stand:[/dim] [bright_cyan]{total}[/bright_cyan] applications "
+        f"  [dim]Where you stand:[/dim] [bright_cyan]{standup['total_applications']}[/bright_cyan] applications "
         f"[dim]·[/dim] [{rate_color}]{response_rate:.0f}% response rate[/{rate_color}]"
     )
 
     console.print("\n  [bold bright_white]Today's priorities[/bold bright_white]")
-
-    # 1. The highest-leverage skill move: most-demanded skill missing from BOTH
-    #    your GitHub and your LinkedIn.
-    missing = [g for g in gaps if not g.get("in_github") and not g.get("in_linkedin")]
-    top_gap = missing[0] if missing else (gaps[0] if gaps else None)
-    if top_gap:
-        skill = top_gap.get("skill", "")
-        req = top_gap.get("times_required", 0)
-        where = []
-        if not top_gap.get("in_github"):
-            where.append("not in your GitHub")
-        if not top_gap.get("in_linkedin"):
-            where.append("not on your LinkedIn")
-        gap_note = " and ".join(where) or "underrepresented in your profile"
-        console.print(
-            f"  [bright_red]1.[/bright_red] Build proof in [bold]{skill}[/bold] — demanded by "
-            f"[bright_cyan]{req}[/bright_cyan] roles that rejected you, {gap_note}."
-        )
-
-    # 2. Follow-ups inside the optimal window (real data: only 'applied' rows).
-    hot = [f for f in followups if f.get("priority") == "hot"]
-    if hot:
-        names = ", ".join(f"{f['company']}" for f in hot[:3])
-        console.print(
-            f"  [bright_red]2.[/bright_red] Send {len(hot)} follow-up(s) today — in the optimal "
-            f"window: [white]{names}[/white]."
-        )
-    else:
-        console.print(
-            "  [dim]2.[/dim] No follow-ups in the 7–14 day window. "
-            "[dim](Add applied_date to pending rows to track this.)[/dim]"
-        )
-
-    # 3. GitHub activity nudge.
-    diff = signal.get("ghost_rate_inactive_weeks", 0) - signal.get("ghost_rate_active_weeks", 0)
-    if diff > 10:
-        console.print(
-            f"  [bright_red]3.[/bright_red] Push code today — your ghost rate is "
-            f"[bright_cyan]{diff:.0f}%[/bright_cyan] higher in weeks you don't commit."
-        )
-    else:
-        console.print("  [dim]3.[/dim] GitHub cadence looks fine — keep shipping.")
+    for i, item in enumerate(standup["priorities"], 1):
+        marker = f"[bright_red]{i}.[/bright_red]" if item["severity"] == "high" else f"[dim]{i}.[/dim]"
+        console.print(f"  {marker} [bold]{item['title']}[/bold] — {item['detail']}")
 
     console.print(
         f"\n  [dim]Full breakdown:[/dim] [bright_cyan]coralcon analyze[/bright_cyan] "

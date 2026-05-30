@@ -374,6 +374,65 @@ function HowItWorksBanner({ accent }) {
 }
 
 /* ====== DASHBOARD TAB ====== */
+/* ====== MORNING STANDUP — Track 2 daily first-mate briefing ====== */
+function MorningBriefing() {
+  const [m, setM] = useDashState(null);
+  const [err, setErr] = useDashState('');
+
+  useDashEffect(() => {
+    let cancelled = false;
+    fetch('/api/morning')
+      .then(r => (r.ok ? r.json() : Promise.reject(new Error('morning ' + r.status))))
+      .then(d => { if (!cancelled) setM(d); })
+      .catch(e => { if (!cancelled) setErr(e.message || 'load failed'); });
+    return () => { cancelled = true; };
+  }, []);
+
+  if (err || !m) return null;
+
+  const rate = m.response_rate ?? 0;
+  const rateColor = rate >= 15 ? 'var(--cc-teal)' : (rate >= 5 ? 'var(--cc-gold)' : '#c0392b');
+
+  return (
+    <div className="cc-card" style={{ padding: 'var(--cc-sp-4)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 8 }}>
+        <div>
+          <div style={{ fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--cc-text-muted)' }}>
+            Morning standup · your first mate
+          </div>
+          <div style={{ fontFamily: 'Fraunces, serif', fontSize: 22, fontWeight: 600 }}>What to do today</div>
+        </div>
+        <div style={{ fontSize: 13, color: 'var(--cc-text-muted)' }}>{m.date_label}</div>
+      </div>
+
+      <div style={{ margin: '12px 0 16px', fontSize: 14 }}>
+        <span style={{ color: 'var(--cc-text-muted)' }}>Where you stand: </span>
+        <strong>{m.total_applications}</strong> applications
+        <span style={{ color: 'var(--cc-text-muted)' }}> · </span>
+        <strong style={{ color: rateColor }}>{rate}% response rate</strong>
+      </div>
+
+      <ol style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 12 }}>
+        {(m.priorities || []).map((p, i) => (
+          <li key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+            <span style={{
+              flex: '0 0 auto', width: 24, height: 24, borderRadius: '50%',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 12, fontWeight: 700, border: '1px solid var(--cc-border)',
+              background: p.severity === 'high' ? 'var(--cc-gold-dim)' : 'transparent',
+              color: p.severity === 'high' ? 'var(--cc-gold)' : 'var(--cc-text-muted)',
+            }}>{i + 1}</span>
+            <div>
+              <div style={{ fontWeight: 600 }}>{p.title}</div>
+              <div style={{ fontSize: 13, color: 'var(--cc-text-muted)' }}>{p.detail}</div>
+            </div>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
 function DashboardTab({ tweaks }) {
   const [data, setData] = useDashState(CORALCON_DATA);
   const [loading, setLoading] = useDashState(true);
@@ -454,6 +513,13 @@ function DashboardTab({ tweaks }) {
           )}
         </div>
       </Reveal>
+
+      {/* Morning standup — daily first-mate briefing (Track 2) */}
+      {!portfolioMode && (
+        <Reveal delay={60}>
+          <MorningBriefing />
+        </Reveal>
+      )}
 
       {/* How It Works */}
       {!portfolioMode && (
