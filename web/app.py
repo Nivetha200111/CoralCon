@@ -99,11 +99,34 @@ async def sources_page(request: Request):
 # ---------------------------------------------------------------------------
 
 
-@app.get("/api/google/status")
-async def api_google_status():
-    from coralcon.google import web_auth
+# Secure cookie that carries the per-browser Google OAuth token. The filesystem
+# is ephemeral on serverless hosts, so the token lives here instead.
+GAUTH_COOKIE = "cc_gauth"
+_GAUTH_MAX_AGE = 60 * 60 * 24 * 30  # 30 days
 
-    return await run_in_threadpool(web_auth.status)
+
+def _apply_token_cookie(resp, token: str | None):
+    """Persist (or refresh) the Google token cookie on a response."""
+    if token:
+        resp.set_cookie(
+            GAUTH_COOKIE, token,
+            max_age=_GAUTH_MAX_AGE, httponly=True, secure=True, samesite="lax", path="/",
+        )
+    return resp
+
+
+def _google_status_with_cookie(cookie: str | None):
+    from coralcon.google import auth, web_auth
+
+    auth.set_token_override(cookie)
+    return web_auth.status(), auth.current_token_cookie()
+
+
+@app.get("/api/google/status")
+async def api_google_status(request: Request):
+    cookie = request.cookies.get(GAUTH_COOKIE)
+    result, token = await run_in_threadpool(_google_status_with_cookie, cookie)
+    return _apply_token_cookie(JSONResponse(result), token)
 
 
 @app.get("/api/google/connect")
@@ -119,10 +142,16 @@ async def api_google_connect(request: Request):
     return RedirectResponse(auth_url)
 
 
+def _exchange_with_cookie(code: str, base_url: str, full_url: str) -> str | None:
+    from coralcon.google import auth, web_auth
+
+    auth.set_token_override(None)
+    web_auth.exchange_code(code, base_url, full_url)
+    return auth.current_token_cookie()
+
+
 @app.get("/oauth2callback")
 async def oauth2_callback(request: Request):
-    from coralcon.google import web_auth
-
     params = request.query_params
     if params.get("error"):
         return RedirectResponse(f"/sources?google=error&reason={params.get('error')}")
@@ -130,15 +159,12 @@ async def oauth2_callback(request: Request):
     if not code:
         return RedirectResponse("/sources?google=error&reason=missing_code")
     try:
-        await run_in_threadpool(
-            web_auth.exchange_code,
-            code,
-            str(request.base_url),
-            str(request.url),
+        token = await run_in_threadpool(
+            _exchange_with_cookie, code, str(request.base_url), str(request.url)
         )
     except Exception as exc:  # noqa: BLE001 - surface any OAuth error to the user
         return RedirectResponse(f"/sources?google=error&reason={type(exc).__name__}")
-    return RedirectResponse("/sources?google=connected")
+    return _apply_token_cookie(RedirectResponse("/sources?google=connected"), token)
 
 
 class GmailImportRequest(BaseModel):
@@ -149,8 +175,10 @@ class GmailImportRequest(BaseModel):
 
 
 @app.post("/api/gmail/import")
-async def api_gmail_import(payload: GmailImportRequest):
-    return await run_in_threadpool(_run_gmail_import, payload)
+async def api_gmail_import(payload: GmailImportRequest, request: Request):
+    cookie = request.cookies.get(GAUTH_COOKIE)
+    result, token = await run_in_threadpool(_run_gmail_import, payload, cookie)
+    return _apply_token_cookie(JSONResponse(result), token)
 
 
 @app.post("/api/resume/upload")
@@ -170,7 +198,16 @@ async def api_resume():
     return {"resume": public_resume_profile()}
 
 
-def _run_gmail_import(payload: GmailImportRequest) -> dict:
+def _run_gmail_import(payload: GmailImportRequest, cookie: str | None = None):
+    """Run the import under the per-request Google token, returning (result, token)."""
+    from coralcon.google import auth as google_auth
+
+    google_auth.set_token_override(cookie)
+    result = _gmail_import_result(payload)
+    return result, google_auth.current_token_cookie()
+
+
+def _gmail_import_result(payload: GmailImportRequest) -> dict:
     from coralcon.google import auth as google_auth
     from coralcon.gmail import extractor
     from coralcon import ingest

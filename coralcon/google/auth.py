@@ -21,6 +21,7 @@ machine without them (or in sample mode) never fails.
 
 from __future__ import annotations
 
+import contextvars
 import json
 import os
 from pathlib import Path
@@ -45,6 +46,81 @@ def token_path() -> Path:
     return Path.home() / ".coralcon" / "google_token.json"
 
 
+# --- Serverless / per-request token override -------------------------------
+# On stateless hosts (Vercel) the filesystem is ephemeral, so the token can't be
+# cached to disk between requests. The web layer instead carries the token in a
+# secure cookie and injects it here per request via this contextvar. The Gmail
+# and Sheets clients keep calling get_credentials() unchanged.
+_token_override: contextvars.ContextVar[str | None] = contextvars.ContextVar(
+    "coralcon_google_token", default=None
+)
+
+
+def set_token_override(token_json: str | None) -> None:
+    """Install (or clear) the per-request token JSON the web layer loaded from a cookie."""
+    _token_override.set(token_json or None)
+
+
+def current_token_cookie() -> str | None:
+    """Return the minimal token JSON to persist back into the cookie, if any."""
+    return _token_override.get()
+
+
+def _cookie_json(creds) -> str:
+    """Serialize only what's needed to rebuild + refresh creds (no client secret)."""
+    expiry = getattr(creds, "expiry", None)
+    return json.dumps(
+        {
+            "token": creds.token,
+            "refresh_token": creds.refresh_token,
+            "scopes": list(getattr(creds, "scopes", None) or SCOPES),
+            "expiry": expiry.isoformat() if expiry else None,
+        }
+    )
+
+
+def _creds_from_override():
+    """Build Credentials from the per-request override cookie, refreshing if stale.
+
+    Client id/secret/token_uri are injected from env so they never live in the
+    cookie. Returns valid Credentials or None.
+    """
+    raw = _token_override.get()
+    if not raw:
+        return None
+    try:
+        from google.oauth2.credentials import Credentials
+        from google.auth.transport.requests import Request
+    except ImportError:
+        return None
+    try:
+        info = json.loads(raw)
+    except (TypeError, ValueError):
+        return None
+    info = {
+        "token": info.get("token"),
+        "refresh_token": info.get("refresh_token"),
+        "client_id": os.getenv("GOOGLE_OAUTH_CLIENT_ID"),
+        "client_secret": os.getenv("GOOGLE_OAUTH_CLIENT_SECRET"),
+        "token_uri": "https://oauth2.googleapis.com/token",
+        "scopes": info.get("scopes") or SCOPES,
+    }
+    try:
+        creds = Credentials.from_authorized_user_info(info, SCOPES)
+    except Exception:
+        return None
+    if creds and creds.valid:
+        return creds
+    if creds and creds.expired and creds.refresh_token:
+        try:
+            creds.refresh(Request())
+            save_credentials(creds)  # refreshes the override so the cookie updates
+            return creds
+        except Exception:
+            return None
+    return creds if (creds and creds.valid) else None
+
+
 # Backwards-compatible private alias.
 _token_path = token_path
 
@@ -59,6 +135,10 @@ def has_credentials() -> bool:
 
     Never triggers an interactive flow — safe to call on a headless server.
     """
+    # Serverless / web: a per-request cookie token takes precedence over the file.
+    if current_token_cookie() is not None:
+        return _creds_from_override() is not None
+
     token_file = token_path()
     if not token_file.exists():
         return False
@@ -84,8 +164,15 @@ def has_credentials() -> bool:
 
 
 def save_credentials(creds) -> None:
-    """Persist credentials to the shared token path."""
-    _save(creds, token_path())
+    """Persist credentials.
+
+    Always updates the per-request override (so the web layer can write the
+    refreshed token back into its cookie). On non-serverless hosts also caches
+    to the shared token file so the CLI reuses the same session.
+    """
+    _token_override.set(_cookie_json(creds))
+    if not os.getenv("VERCEL"):
+        _save(creds, token_path())
 
 
 def _client_config_from_env() -> dict | None:
@@ -112,6 +199,11 @@ def get_credentials():
         from google_auth_oauthlib.flow import InstalledAppFlow
     except ImportError as exc:  # pragma: no cover - environment dependent
         raise RuntimeError(_INSTALL_HINT) from exc
+
+    # Serverless / web: a per-request cookie token takes precedence over the file.
+    override = _creds_from_override()
+    if override is not None:
+        return override
 
     token_file = _token_path()
     creds = None
