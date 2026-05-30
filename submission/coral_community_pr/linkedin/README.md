@@ -78,47 +78,66 @@ ORDER BY times_required DESC;
 ## Validated against exported archive
 
 Validated end-to-end against a real LinkedIn account data export (Coral 0.4.1,
-file backend). Output below is from a real archive with personal values
-sanitized.
+file backend) containing a real `Profile.csv` (1 row), `Skills.csv` (54 rows),
+and `Positions.csv` (5 rows). Output below is verbatim Coral output with
+personal values sanitized.
 
 ```text
+$ export LINKEDIN_EXPORT_PATH=./linkedin_export
 $ coral source add --file ./linkedin/manifest.yaml
 Added source linkedin (secrets: none)
 
 $ coral source test linkedin
+
   ✓ linkedin connected successfully
+  Secrets: none
+
+    linkedin (4 tables)
+    ├─ connections
+    ├─ positions
+    ├─ profile
+    └─ skills
+    Query tests
     3 declared · 3 passed · 0 failed
+
     ✓ SELECT * FROM linkedin.skills LIMIT 1
+      1 row
     ✓ SELECT * FROM linkedin.profile LIMIT 1
+      1 row
     ✓ SELECT * FROM linkedin.positions LIMIT 1
+      1 row
 
 $ coral sql "SELECT * FROM linkedin.skills LIMIT 5"
-+-------------------------+
-| name                    |
-+-------------------------+
-| Full-Stack Development  |
++--------------------------+
+| name                     |
++--------------------------+
+| Full-Stack Development   |
 | Back-End Web Development |
-| Automation              |
-| Python                  |
-| SQL                     |
-+-------------------------+
+| Back-end Operations      |
+| Automation               |
+| Python                   |
++--------------------------+
 
 $ coral sql "SELECT first_name, headline, industry, geo_location FROM linkedin.profile LIMIT 1"
-+------------+-----------------------------+----------------------+----------------+
-| first_name | headline                    | industry             | geo_location   |
-+------------+-----------------------------+----------------------+----------------+
-| Jordan     | Software Developer at Acme  | Software Development  | Bengaluru, IN  |
-+------------+-----------------------------+----------------------+----------------+
++------------+----------------------------+---------------------+---------------+
+| first_name | headline                   | industry            | geo_location  |
++------------+----------------------------+---------------------+---------------+
+| Jordan     | Software Developer at Acme | Software Development | Bengaluru, IN |
++------------+----------------------------+---------------------+---------------+
 
 $ coral sql "SELECT company_name, title, started_on FROM linkedin.positions LIMIT 3"
-+----------------+------------------+------------+
-| company_name   | title            | started_on |
-+----------------+------------------+------------+
-| Acme Corp      | Software Engineer| Apr 2026   |
-| Globex         | System Engineer  | Oct 2024   |
-| State College  | Student          | Jun 2020   |
-+----------------+------------------+------------+
++---------------+-------------------+------------+
+| company_name  | title             | started_on |
++---------------+-------------------+------------+
+| Acme Corp     | Software Engineer | Apr 2026   |
+| Globex        | System Engineer   | Oct 2024   |
+| State College | Student           | Jun 2020   |
++---------------+-------------------+------------+
 ```
+
+(The `connections` table is listed as a declared table but is not exercised by
+the test queries above, because this export contained no `Connections.csv`; see
+the preprocessing note above for how that file is handled when present.)
 
 Live validation note: Coral 0.4.1 has an intermittent tokio panic that prints
 to stderr *after* returning correct results; it does not affect query output.
