@@ -501,15 +501,28 @@ def gmail_extract(query, max_results, no_ai, write, dry_run):
         console.print("\n  [dim]Dry run — nothing written. Drop --dry-run to push to your Sheet.[/dim]\n")
         return
 
-    from coralcon.sheets.client import append_applications, sync_to_csv
+    # Prefer the Sheet round-trip when one is configured; otherwise write
+    # straight to the CSV the Coral `sheets` source reads (no Google Sheet
+    # required to get real data flowing through Coral).
+    if os.getenv("SHEETS_SPREADSHEET_ID"):
+        from coralcon.sheets.client import append_applications, sync_to_csv
 
-    with fmt.spinner("Writing new rows to your Google Sheet..."):
-        added = append_applications(rows)
-        synced = sync_to_csv()
-    console.print(
-        f"\n  [bright_green]Wrote {added} new rows[/bright_green] "
-        f"[dim]· synced {synced} rows to data/applications.csv for Coral[/dim]\n"
-    )
+        with fmt.spinner("Writing new rows to your Google Sheet..."):
+            added = append_applications(rows)
+            synced = sync_to_csv()
+        console.print(
+            f"\n  [bright_green]Wrote {added} new rows[/bright_green] "
+            f"[dim]· synced {synced} rows to data/applications.csv for Coral[/dim]\n"
+        )
+    else:
+        from coralcon.sheets.client import append_to_csv, _csv_path
+
+        with fmt.spinner("Writing new rows to data/applications.csv..."):
+            added = append_to_csv(rows)
+        console.print(
+            f"\n  [bright_green]Wrote {added} new rows[/bright_green] "
+            f"[dim]-> {_csv_path()} (read live by the Coral sheets source)[/dim]\n"
+        )
 
 
 @cli.command("sheets-sync")

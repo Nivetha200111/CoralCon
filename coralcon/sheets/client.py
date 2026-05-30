@@ -206,3 +206,34 @@ def write_csv(rows: list[dict], csv_path: Path | None = None) -> Path:
         for row in rows:
             writer.writerow(_row_to_cells(row))
     return path
+
+
+def read_csv(csv_path: Path | None = None) -> list[dict]:
+    """Read the canonical applications CSV (the file the Coral `sheets` source reads)."""
+    path = csv_path or _csv_path()
+    if not path.exists():
+        return []
+    with open(path, newline="", encoding="utf-8") as f:
+        reader = csv.reader(f)
+        rows = list(reader)
+    if not rows:
+        return []
+    header = rows[0]
+    return [_cells_to_row(header, cells) for cells in rows[1:] if any(cells)]
+
+
+def append_to_csv(rows: list[dict], csv_path: Path | None = None) -> int:
+    """Append rows directly to the local CSV, merging by id (no Google Sheet needed).
+
+    This is the Sheet-free path: Gmail extraction -> applications.csv -> Coral
+    `sheets.applications`. Existing ids are preserved so manual edits win.
+    Returns the count of newly added rows.
+    """
+    path = csv_path or _csv_path()
+    existing = read_csv(path)
+    existing_ids = {r.get("id") for r in existing if r.get("id")}
+    new_rows = [r for r in rows if r.get("id") not in existing_ids]
+    if not new_rows:
+        return 0
+    write_csv(existing + new_rows, path)
+    return len(new_rows)

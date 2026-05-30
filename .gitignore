@@ -17,3 +17,11 @@ build/
 *.egg-info/
 .playwright-mcp/
 .vercel
+
+# Google OAuth client secret (never commit)
+client_secret*.json
+google_token.json
+
+# Real personal application data — never commit
+data/applications.csv
+data/applications.demo-backup.csv
