@@ -69,28 +69,39 @@ def _run_real_query(sql: str) -> list[dict]:
     return _run_coral_query(sql)
 
 
-def _run_coral_query(sql: str) -> list[dict]:
-    """Execute a real Coral SQL query via CLI."""
-    try:
-        result = _run_coral_sql_command(sql)
-    except FileNotFoundError:
-        raise RuntimeError(
-            "Coral CLI not found. Install with: brew install withcoral/tap/coral"
-        )
-    except subprocess.TimeoutExpired:
-        raise RuntimeError("Coral query timed out after 30s")
+_CORAL_QUERY_ATTEMPTS = 4
 
-    # Coral 0.4.1 can panic on teardown ("Cannot start a runtime from within a
-    # runtime") AFTER it has already written valid JSON to stdout, leaving a
-    # non-zero exit code. The query result is still correct, so prefer parsing
-    # stdout; only treat it as an error when stdout has no usable JSON.
-    stdout = (result.stdout or "").strip()
-    if stdout:
+
+def _run_coral_query(sql: str) -> list[dict]:
+    """Execute a real Coral SQL query via CLI.
+
+    Coral 0.4.1 has an intermittent tokio panic ("Cannot start a runtime from
+    within a runtime"). It can fire on teardown *after* valid JSON is written
+    (result still correct) or before sources register (query fails outright).
+    Because it is intermittent, we retry a few times before giving up so the
+    flaky panic never forces a silent fall back to sample data.
+    """
+    last_stderr = "no output from coral"
+    for _ in range(_CORAL_QUERY_ATTEMPTS):
         try:
-            return json.loads(stdout)
-        except json.JSONDecodeError:
-            pass
-    raise RuntimeError(f"Coral error: {result.stderr or 'no output from coral'}")
+            result = _run_coral_sql_command(sql)
+        except FileNotFoundError:
+            raise RuntimeError(
+                "Coral CLI not found. Install with: brew install withcoral/tap/coral"
+            )
+        except subprocess.TimeoutExpired:
+            last_stderr = "query timed out after 30s"
+            continue
+
+        stdout = (result.stdout or "").strip()
+        if stdout:
+            try:
+                return json.loads(stdout)
+            except json.JSONDecodeError:
+                pass
+        last_stderr = result.stderr or last_stderr
+
+    raise RuntimeError(f"Coral error: {last_stderr}")
 
 
 def _run_applications_query(sql: str) -> list[dict]:
@@ -120,28 +131,13 @@ def _run_applications_query(sql: str) -> list[dict]:
 
 
 def _run_coral_sql_command(sql: str) -> subprocess.CompletedProcess[str]:
-    """Run Coral SQL using the current CLI, with legacy command fallback."""
-    try:
-        result = subprocess.run(
-            ["coral", "sql", "--format", "json", sql],
-            capture_output=True,
-            text=True,
-            timeout=30,
-        )
-    except FileNotFoundError:
-        raise
-
-    # returncode 0, or a teardown panic that still produced JSON on stdout.
-    if result.returncode == 0 or (result.stdout or "").lstrip().startswith(("[", "{")):
-        return result
-
-    legacy = subprocess.run(
-        ["coral", "query", "--format", "json", sql],
+    """Run a single Coral SQL command (`coral sql`)."""
+    return subprocess.run(
+        ["coral", "sql", "--format", "json", sql],
         capture_output=True,
         text=True,
         timeout=30,
     )
-    return legacy if legacy.returncode == 0 else result
 
 
 def _fetch_applications_table() -> list[dict]:
