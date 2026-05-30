@@ -115,8 +115,8 @@ def _run_applications_query(sql: str) -> list[dict]:
 
     if "required_skills" in sql_lower and "linkedin" in sql_lower:
         linkedin_rows = _run_coral_query("SELECT name FROM linkedin.skills")
-        github_rows = _fetch_github_activity_summary()
-        return _skill_gaps_from_apps(apps, linkedin_rows, github_rows)
+        github_languages = _fetch_github_languages()
+        return _skill_gaps_from_apps(apps, linkedin_rows, github_languages)
 
     if "days_waiting" in sql_lower or "follow-up" in sql_lower or "followup" in sql_lower:
         return _followups_from_apps(apps)
@@ -229,29 +229,30 @@ def _rejection_patterns_from_apps(apps: list[dict]) -> list[dict]:
     return sorted(rows, key=lambda r: r["rejection_rate"], reverse=True)
 
 
-def _skill_gaps_from_apps(apps: list[dict], linkedin_rows: list[dict], github_rows: list[dict]) -> list[dict]:
+def _skill_gaps_from_apps(apps: list[dict], linkedin_rows: list[dict], github_languages: set[str]) -> list[dict]:
+    """Match skills demanded by rejected roles against LinkedIn skills and real
+    GitHub languages.
+
+    Mirrors the logged skill_gaps SQL: count demand per skill on rejected roles
+    only, treat LinkedIn as a substring match (LinkedIn lists "Python
+    (Programming Language)", not "Python"), and GitHub as an exact language match.
+    """
     counts: dict[str, int] = {}
     for app in apps:
-        if app.get("status") not in {"rejected", "ghosted", "applied"}:
+        if app.get("status") != "rejected":
             continue
         for skill in app.get("required_skills", []):
-            counts[skill] = counts.get(skill, 0) + 1
+            skill = str(skill).strip()
+            if skill:
+                counts[skill] = counts.get(skill, 0) + 1
 
-    linkedin_skills = {str(row.get("name", "")).lower() for row in linkedin_rows}
-    github_languages = set()
-    for row in github_rows:
-        languages = row.get("languages", [])
-        if isinstance(languages, str):
-            try:
-                languages = json.loads(languages)
-            except json.JSONDecodeError:
-                languages = [languages]
-        github_languages.update(str(lang).lower() for lang in languages)
+    linkedin_skills = {str(row.get("name", "")).strip().lower() for row in linkedin_rows}
 
     rows = []
     for skill, count in sorted(counts.items(), key=lambda item: item[1], reverse=True):
-        in_github = skill.lower() in github_languages
-        in_linkedin = skill.lower() in linkedin_skills
+        skill_lower = skill.lower()
+        in_github = skill_lower in github_languages
+        in_linkedin = any(skill_lower in name for name in linkedin_skills)
         if count >= 3 and not (in_github or in_linkedin):
             priority = "critical"
         elif count >= 2:
@@ -327,6 +328,27 @@ def _fetch_github_activity_summary() -> list[dict]:
         row["active_repos"] = len(row.pop("_repos"))
         rows.append(row)
     return sorted(rows, key=lambda row: row["week"], reverse=True)
+
+
+def _fetch_github_languages() -> set[str]:
+    """Languages the user actually ships, from their real GitHub repos via Coral.
+
+    Reads `github.user_repos` (the authenticated user's repositories). Returns a
+    lowercased set of language names. GitHub is treated as optional: if the
+    source errors or is unauthenticated, we return an empty set so the LinkedIn
+    side of the skill-gap join still produces a real signal.
+    """
+    try:
+        rows = _run_coral_query(
+            "SELECT language FROM github.user_repos WHERE language IS NOT NULL LIMIT 500"
+        )
+    except RuntimeError:
+        return set()
+    return {
+        str(row.get("language", "")).strip().lower()
+        for row in rows
+        if str(row.get("language", "")).strip()
+    }
 
 
 def _fetch_github_username() -> str | None:

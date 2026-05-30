@@ -24,10 +24,10 @@ Joining with `linkedin.skills` proves whether profile signals match role require
 
 ## Coral Proof
 
-- Total queries: 9
-- Cross-source JOINs: 2
-- Sources: github.activity, github.profile, linkedin.profile, linkedin.skills, sheets.applications
-- Mode: sample
+- Total queries: 10
+- Cross-source JOINs: 4
+- Sources: github.activity, github.user_repos, linkedin.skills, sheets.applications
+- Mode: real
 
 ## Demo Commands
 

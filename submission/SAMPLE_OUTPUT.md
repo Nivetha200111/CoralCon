@@ -20,7 +20,7 @@
 - **Severity:** high
 - **Confidence:** 88%
 - **Query:** q_007
-- **Sources:** github.profile, linkedin.skills, sheets.applications
+- **Sources:** github.user_repos, linkedin.skills, sheets.applications
 - **Action:** Build and pin one React project within 7 days.
 
 ### GitHub activity signal

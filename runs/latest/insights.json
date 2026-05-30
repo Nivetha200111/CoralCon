@@ -361,7 +361,7 @@
         "query_id": "q_007",
         "rows_used": 38,
         "sources": [
-          "github.profile",
+          "github.user_repos",
           "linkedin.skills",
           "sheets.applications"
         ],

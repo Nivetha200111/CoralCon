@@ -20,10 +20,10 @@ correlation logic. With Coral, the agent asks one SQL question across all source
 
 - **Total Coral queries:** 9
 - **Cross-source JOINs:** 2
-- **Sources queried:** github.activity, github.profile, linkedin.profile, linkedin.skills, sheets.applications
+- **Sources queried:** github.activity, github.user_repos, linkedin.profile, linkedin.skills, sheets.applications
 - **Best query:** skill_gap_detection
 - **Best query rows:** 12
-- **Best query time:** 0.48ms
+- **Best query time:** 0.24ms
 - **Cached queries:** 0
 - **Mode:** sample
 
@@ -71,7 +71,7 @@ CLI/Web -> Orchestrator -> Recon Agent -> Coral SQL -> GitHub + Sheets + LinkedI
 **Severity:** high
 **Confidence:** 88%
 **Evidence query:** q_007
-**Sources:** github.profile, linkedin.skills, sheets.applications
+**Sources:** github.user_repos, linkedin.skills, sheets.applications
 **Rows used:** 38
 **Root cause:** The job descriptions ask for the skill, but the public evidence is weak or absent.
 **Action:** Build and pin one React project within 7 days.
@@ -107,7 +107,7 @@ CLI/Web -> Orchestrator -> Recon Agent -> Coral SQL -> GitHub + Sheets + LinkedI
 
 - Sources: github.activity, sheets.applications
 - Rows: 26
-- Execution: 1.32ms
+- Execution: 0.32ms
 - Cached: no
 
 ```sql
@@ -116,13 +116,13 @@ SELECT n.company, n.applied_date, n.status, n.role_title, g.commits_count, g.act
 
 ### skill_gap_detection (q_007)
 
-- Sources: github.profile, linkedin.skills, sheets.applications
+- Sources: github.user_repos, linkedin.skills, sheets.applications
 - Rows: 12
-- Execution: 0.48ms
+- Execution: 0.24ms
 - Cached: no
 
 ```sql
-SELECT skill, COUNT(*) as times_required, MAX(CASE WHEN in_github = true THEN 1 ELSE 0 END) as in_github, MAX(CASE WHEN in_linkedin = true THEN 1 ELSE 0 END) as in_linkedin FROM ( SELECT skill_name as skill, (g.languages LIKE '%' || skill_name || '%') as in_github, (l.name LIKE '%' || skill_name || '%') as in_linkedin FROM ( SELECT UNNEST(n.required_skills) as skill_name FROM sheets.applications n WHERE n.status = 'rejected' ) skills JOIN github.profile g JOIN linkedin.skills l ) sub GROUP BY skill ORDER BY times_required DESC LIMIT 15
+WITH demand AS ( SELECT TRIM(skill) AS skill, COUNT(*) AS times_required FROM ( SELECT UNNEST(string_to_array(n.required_skills, ';')) AS skill FROM sheets.applications n WHERE n.status = 'rejected' AND n.required_skills <> '' ) GROUP BY TRIM(skill) ), li AS (SELECT DISTINCT LOWER(name) AS name FROM linkedin.skills), gh AS (SELECT DISTINCT LOWER(language) AS lang FROM github.user_repos WHERE language IS NOT NULL) SELECT d.skill, d.times_required, MAX(CASE WHEN li.name LIKE '%' || LOWER(d.skill) || '%' THEN 1 ELSE 0 END) AS in_linkedin, MAX(CASE WHEN gh.lang = LOWER(d.skill) THEN 1 ELSE 0 END) AS in_github FROM demand d LEFT JOIN li ON li.name LIKE '%' || LOWER(d.skill) || '%' LEFT JOIN gh ON gh.lang = LOWER(d.skill) GROUP BY d.skill, d.times_required ORDER BY d.times_required DESC, in_linkedin ASC, in_github ASC LIMIT 15
 ```
 
 ## Sample Mode vs Real Mode

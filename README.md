@@ -35,21 +35,36 @@ Coral SQL is the central data layer of CoralCon. Every piece of career intellige
 
 Without Coral, CoralCon would need three separate API integrations (GitHub REST API, Google Sheets API, LinkedIn GDPR CSV parsing), each with its own authentication, pagination, rate limiting, schema mapping, and error handling. Correlating data across sources would require custom join logic, date alignment, and manual data normalization.
 
-With Coral, the agent asks **one SQL question across all three sources**:
+With Coral, the agent asks **one SQL question across all three sources**. This
+is the flagship skill-gap query — it runs verbatim against Coral and returns real
+rows (the demand count is taken before the existence joins so fan-out can't
+inflate it):
 
 ```sql
-SELECT
-  n.role_title, n.status,
-  g.commits_count, g.languages,
-  l.skills, l.headline
-FROM sheets.applications n
-JOIN github.activity g
-  ON g.week = date_trunc('week', n.applied_date)
-JOIN linkedin.skills l
-WHERE n.applied_date > DATE_SUB(NOW(), INTERVAL 6 MONTH)
+WITH demand AS (
+  SELECT TRIM(skill) AS skill, COUNT(*) AS times_required
+  FROM (
+    SELECT UNNEST(string_to_array(n.required_skills, ';')) AS skill
+    FROM sheets.applications n
+    WHERE n.status = 'rejected' AND n.required_skills <> ''
+  )
+  GROUP BY TRIM(skill)
+),
+li AS (SELECT DISTINCT LOWER(name) AS name FROM linkedin.skills),
+gh AS (SELECT DISTINCT LOWER(language) AS lang FROM github.user_repos WHERE language IS NOT NULL)
+SELECT d.skill, d.times_required,
+       MAX(CASE WHEN li.name LIKE '%' || LOWER(d.skill) || '%' THEN 1 ELSE 0 END) AS in_linkedin,
+       MAX(CASE WHEN gh.lang = LOWER(d.skill) THEN 1 ELSE 0 END) AS in_github
+FROM demand d
+LEFT JOIN li ON li.name LIKE '%' || LOWER(d.skill) || '%'
+LEFT JOIN gh ON gh.lang = LOWER(d.skill)
+GROUP BY d.skill, d.times_required
+ORDER BY d.times_required DESC, in_linkedin ASC, in_github ASC
 ```
 
-This cross-source JOIN is what makes CoralCon possible. It connects:
+A skill with a high `times_required` but `in_linkedin = 0` and `in_github = 0`
+is an evidence-backed gap. This cross-source JOIN is what makes CoralCon
+possible. It connects:
 
 - **Google Sheets** (application outcomes: company, role, status, required skills — populated from Gmail)
 - **GitHub** (proof-of-work: commit cadence, repo languages, activity timeline)
@@ -85,11 +100,11 @@ web dashboard, so it works from any browser, not just the terminal.
 
 | Claim | Evidence Source | Cross-Source JOIN |
 |-------|---------------|-------------------|
-| React roles have 94% rejection rate | `sheets.applications` | No |
-| Ghost rate is 70 pts higher in inactive GitHub weeks | `sheets.applications` + `github.activity` | Yes |
-| Top skill gap (React) appears in 38 rejected apps but 0 repos | `sheets.applications` + `github.profile` + `linkedin.skills` | Yes |
-| LinkedIn headline mismatches applied role categories | `linkedin.profile` + `sheets.applications` | Yes |
-| Applications sent 7+ days late have 72% ghost rate | `sheets.applications` | No |
+| Java is demanded by 19 rejected roles, on your LinkedIn but absent from your GitHub | `sheets.applications` + `linkedin.skills` + `github.user_repos` | Yes |
+| React is demanded by 3 rejected roles and missing from both your GitHub and LinkedIn | `sheets.applications` + `linkedin.skills` + `github.user_repos` | Yes |
+| GitHub commit activity correlates with application outcomes | `sheets.applications` + `github.activity` | Yes |
+| Python is your real strength — top demand, present in both GitHub and LinkedIn | `sheets.applications` + `linkedin.skills` + `github.user_repos` | Yes |
+| Response rate across all tracked applications | `sheets.applications` | No |
 
 Every insight includes the query ID, source tables, row count, and supporting numbers. No hallucinated data.
 
@@ -279,10 +294,14 @@ LinkedIn export as SQL — [withcoral/coral#994](https://github.com/withcoral/co
 python -m coralcon.cli ask "which roles reject me the most?"
 python -m coralcon.cli ask "what skills am I missing?" --no-ai
 
+# Daily "first mate" standup (Track 2) — what to do today, across all 3 sources
+python -m coralcon.cli morning                       # one-screen daily briefing
+
 # Gmail -> Google Sheets tracker (populates sheets.applications for Coral)
 python -m coralcon.cli gmail-extract                 # extract rejections, write to Sheet
 python -m coralcon.cli gmail-extract --dry-run       # preview classification only
 python -m coralcon.cli sheets-sync                   # sync Sheet -> applications.csv
+python -m coralcon.cli enrich                        # infer required_skills from role titles
 
 # Core analysis
 python -m coralcon.cli db init --reset               # Create local SQLite DB

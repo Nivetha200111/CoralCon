@@ -25,6 +25,7 @@ import re
 from datetime import datetime, timezone
 from email.utils import parseaddr, parsedate_to_datetime
 
+from coralcon.enrich.skill_inference import infer_required_skills
 from coralcon.google.auth import get_credentials
 
 # Gmail search that surfaces likely rejection / decision emails. Tunable via env.
@@ -254,6 +255,7 @@ def _classify_with_heuristics(messages: list[dict]) -> list[dict]:
 
 
 def _build_row(msg: dict, company: str, role_title: str, status: str) -> dict:
+    notes = msg["subject"][:160]
     return {
         "id": f"gmail_{msg['id'][:12]}",
         "company": company,
@@ -261,10 +263,12 @@ def _build_row(msg: dict, company: str, role_title: str, status: str) -> dict:
         "status": status,
         "applied_date": "",  # unknown from a rejection email; user can backfill
         "responded_date": _iso_date(msg["date"]),
-        "required_skills": [],
+        # Rejection emails don't list the role's skills, so infer them from the
+        # title; this is what the cross-source skill-gap query joins on.
+        "required_skills": infer_required_skills(role_title, notes),
         "salary_range": "",
         "source": "Gmail",
-        "notes": msg["subject"][:160],
+        "notes": notes,
     }
 
 
