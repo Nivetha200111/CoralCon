@@ -103,9 +103,7 @@ def _run_applications_query(sql: str) -> list[dict]:
         return _github_correlation_from_apps(apps, github_rows)
 
     if "required_skills" in sql_lower and "linkedin" in sql_lower:
-        linkedin_rows = _run_coral_query(
-            "SELECT name, endorsements FROM linkedin.skills ORDER BY endorsements DESC"
-        )
+        linkedin_rows = _run_coral_query("SELECT name FROM linkedin.skills")
         github_rows = _fetch_github_activity_summary()
         return _skill_gaps_from_apps(apps, linkedin_rows, github_rows)
 

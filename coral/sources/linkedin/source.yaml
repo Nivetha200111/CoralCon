@@ -24,22 +24,39 @@ tables:
     source:
       location: file://{{input.LINKEDIN_EXPORT_PATH}}/
       glob: Profile.csv
+    # Column order matches LinkedIn's current Basic export (Profile.csv).
     columns:
       - name: first_name
         type: Utf8
       - name: last_name
         type: Utf8
+      - name: maiden_name
+        type: Utf8
+      - name: address
+        type: Utf8
+      - name: birth_date
+        type: Utf8
       - name: headline
         type: Utf8
       - name: summary
         type: Utf8
-      - name: location
-        type: Utf8
       - name: industry
+        type: Utf8
+      - name: zip_code
+        type: Utf8
+      - name: geo_location
+        type: Utf8
+      - name: twitter_handles
+        type: Utf8
+      - name: websites
+        type: Utf8
+      - name: instant_messengers
         type: Utf8
 
   - name: skills
-    description: LinkedIn skills with endorsement counts.
+    description: >-
+      LinkedIn skills. The current Basic export ships a single-column
+      Skills.csv (skill name only; endorsement counts were dropped).
     format: csv
     format_options:
       has_header: true
@@ -49,8 +66,6 @@ tables:
     columns:
       - name: name
         type: Utf8
-      - name: endorsements
-        type: Int64
 
   - name: positions
     description: "Work history: company, title, and dates."
