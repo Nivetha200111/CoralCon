@@ -237,14 +237,22 @@ def _gmail_import_result(payload: GmailImportRequest) -> dict:
         except Exception as exc:  # noqa: BLE001
             sheet_error = str(exc)
 
-    # Always reflect the import in the dashboard, Coral or not.
-    summary = ingest.ingest_applications(rows)
+    # Always reflect the import in the dashboard, Coral or not. The local store
+    # is best-effort: a failure here (e.g. a read-only FS) must not sink the
+    # whole import, which already succeeded at the Gmail/classify step.
+    summary: dict = {}
+    ingest_error = None
+    try:
+        summary = ingest.ingest_applications(rows)
+    except Exception as exc:  # noqa: BLE001
+        ingest_error = str(exc)
 
     return {
         "ok": True,
         "extracted": len(rows),
         "added": summary.get("added", 0),
         "totalApplications": summary.get("total_applications", 0),
+        "ingestError": ingest_error,
         "sheetWritten": sheet_written,
         "sheetError": sheet_error,
         "rowsPreview": rows[:8],

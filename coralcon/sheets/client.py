@@ -39,7 +39,13 @@ DEFAULT_TAB = "Applications"
 
 def _csv_path() -> Path:
     raw = os.getenv("SHEETS_CSV_PATH")
-    base = Path(raw).expanduser() if raw else Path(__file__).parent.parent.parent / "data"
+    if raw:
+        base = Path(raw).expanduser()
+    elif os.getenv("VERCEL"):
+        # Read-only project filesystem on serverless; /tmp is the only writable dir.
+        base = Path("/tmp")
+    else:
+        base = Path(__file__).parent.parent.parent / "data"
     return base / "applications.csv"
 
 

@@ -17,6 +17,10 @@ SCHEMA_VERSION = 1
 def database_path() -> Path:
     configured = os.getenv("CORALCON_DB_PATH")
     if not configured:
+        # Serverless hosts (Vercel) ship a read-only project filesystem; only
+        # /tmp is writable. Keep the SQLite file there so imports don't crash.
+        if os.getenv("VERCEL"):
+            return Path("/tmp/coralcon.sqlite")
         return DEFAULT_DB_PATH
     path = Path(configured).expanduser()
     return path if path.is_absolute() else PROJECT_ROOT / path
