@@ -119,33 +119,72 @@ def _fetch_message(svc, msg_id: str) -> dict:
 # Parsing helpers
 # ---------------------------------------------------------------------------
 
-def _company_from_sender(from_header: str) -> str:
-    """Best-effort company name from a From header.
+# ATS / email-infra tokens that are never the hiring company.
+_ATS_TOKENS = {
+    "greenhouse", "lever", "workday", "myworkday", "myworkdayjobs", "ashby",
+    "ashbyhq", "smartrecruiters", "icims", "taleo", "successfactors", "jobvite",
+    "bamboohr", "rippling", "gem", "eightfold", "phenom", "avature", "teamtailor",
+    "mail", "email", "mailer", "notifications", "notification", "noreply",
+    "no-reply", "donotreply", "do-not-reply", "hello", "info", "talent",
+    "careers", "recruiting", "jobs", "wd1", "wd3", "wd5", "us", "eu",
+}
 
-    'Stripe Recruiting <jobs@stripe.com>' -> 'Stripe'
-    'careers@scale.com'                   -> 'Scale'
+# Recruiting noise words to strip from a sender display name.
+_COMPANY_NOISE = re.compile(
+    r"\b(recruit(?:ing|ment)?|talent(?:s)?|acquisition|careers?|team|hiring|"
+    r"no-?reply|do-?not-?reply|jobs?|hr|people|staffing|notifications?|mailer|"
+    r"global|partners?|bootcamp|actions?|inc|llc|ltd|the)\b",
+    flags=re.IGNORECASE,
+)
+
+
+def _is_ats_label(label: str) -> bool:
+    low = label.lower()
+    return any(tok in low for tok in _ATS_TOKENS)
+
+
+def _titlecase_company(text: str) -> str:
+    """Title-case, but keep short all-caps acronyms (IBM, SAP) intact."""
+    out = []
+    for word in text.split():
+        if word.isupper() and len(word) <= 4:
+            out.append(word)
+        else:
+            out.append(word[:1].upper() + word[1:])
+    return " ".join(out)
+
+
+def _clean_company(text: str) -> str:
+    text = _COMPANY_NOISE.sub(" ", text)
+    text = re.sub(r"[^A-Za-z0-9&.\- ]", " ", text)
+    text = re.sub(r"\s+", " ", text).strip(" ,-|.&")
+    return _titlecase_company(text) if text else ""
+
+
+def _company_from_sender(from_header: str) -> str:
+    """Best-effort hiring-company name from a From header.
+
+    'Stripe Recruiting <jobs@stripe.com>'        -> 'Stripe'
+    'Logitech via Workday <no-reply@myworkday>'  -> 'Logitech'
+    'careers@scale.com'                          -> 'Scale'
+    Falls back to 'Unknown' rather than emitting an ATS vendor or noise.
     """
     name, addr = parseaddr(from_header)
-    if name:
-        cleaned = re.sub(
-            r"\b(recruiting|recruitment|talent|careers?|team|hiring|noreply|no-reply|jobs|hr)\b",
-            "",
-            name,
-            flags=re.IGNORECASE,
-        ).strip(" ,-|")
-        if cleaned:
-            return cleaned
-    domain = addr.split("@")[-1] if "@" in addr else ""
-    domain = re.sub(
-        r"^(mail|email|jobs|careers|recruiting|talent|notifications?|no-?reply)\.",
-        "",
-        domain,
-    )
-    base = domain.split(".")[0] if domain else ""
-    # Strip ATS vendors so we don't label everything "Greenhouse".
-    if base.lower() in {"greenhouse", "lever", "myworkday", "workday", "ashbyhq", "ashby", "smartrecruiters", "icims"}:
-        return name or base.title()
-    return base.title()
+    # "Logitech via Workday" / "Acme (Greenhouse)" -> take the company part.
+    name = re.split(r"\s+via\s+|\s*\(", name or "", maxsplit=1)[0]
+    cleaned = _clean_company(name)
+    if cleaned and not _is_ats_label(cleaned):
+        return cleaned
+
+    # Fall back to the email domain, skipping ATS / infra labels.
+    domain = addr.split("@")[-1].lower() if "@" in addr else ""
+    tlds = {"com", "org", "net", "io", "co", "ai", "dev", "app", "us", "www"}
+    labels = [l for l in domain.split(".") if l and l not in tlds]
+    for label in labels:  # most-specific subdomain first (company.wd5.myworkday…)
+        if not _is_ats_label(label):
+            return _titlecase_company(label)
+    # Nothing but ATS/infra signal anywhere — don't mislabel it as the vendor.
+    return "Unknown"
 
 
 def _iso_date(date_header: str) -> str:
@@ -163,16 +202,38 @@ def _looks_like_rejection(text: str) -> bool:
     return any(marker in low for marker in _REJECTION_MARKERS)
 
 
+_ROLE_KEYWORD = (
+    r"(?:Engineer|Developer|Designer|Manager|Analyst|Scientist|Architect|"
+    r"Consultant|Specialist|Administrator|Programmer|Researcher|Intern|"
+    r"Internship|Associate|Trainee|Lead|Director|SDE|SDET)"
+)
+# Leading boilerplate to peel off a captured phrase.
+_ROLE_PREFIX = re.compile(
+    r"^(?:your|our|the|a|an|for|to|application|position|role|update|regarding|"
+    r"thank|thanks|you|we|re)\s+",
+    flags=re.IGNORECASE,
+)
+
+
 def _role_from_subject(subject: str) -> str:
-    """Pull a plausible role title out of the subject line, else empty."""
-    m = re.search(
-        r"(?:for|the|your)\s+(?:the\s+)?([A-Z][A-Za-z/ ]*?(?:Engineer|Developer|Designer|Manager|Analyst|Scientist|Intern|Lead))",
-        subject,
-    )
-    if m:
-        return m.group(1).strip()
-    m = re.search(r"\b([A-Za-z/ ]*?(?:Engineer|Developer|Designer|Manager|Analyst|Scientist))\b", subject)
-    return m.group(1).strip() if m else ""
+    """Pull a concise role title from the subject line, else empty.
+
+    Captures up to a few Capitalized words ending in a role keyword (so we get
+    'Backend Engineer', not the whole 'Your application for our ...' sentence).
+    Returns "" when nothing plausible is found — a blank role beats garbage.
+    """
+    s = re.sub(r"^(?:re|fw|fwd):\s*", "", subject or "", flags=re.IGNORECASE)
+    m = re.search(rf"((?:[A-Z][A-Za-z0-9+/.#&-]*\s+){{0,4}}{_ROLE_KEYWORD})\b", s)
+    if not m:
+        return ""
+    role = m.group(1).strip()
+    # Drop any leading boilerplate words that slipped into the capture.
+    prev = None
+    while role != prev:
+        prev = role
+        role = _ROLE_PREFIX.sub("", role).strip(" ,-")
+    role = re.sub(r"\s+", " ", role).strip(" ,-")
+    return role if 0 < len(role) <= 50 else ""
 
 
 # ---------------------------------------------------------------------------
@@ -199,14 +260,20 @@ def _classify_with_llm(messages: list[dict]) -> list[dict] | None:
     ]
     prompt = (
         "You extract structured job-application outcomes from recruiting emails.\n"
-        "For each email, return the hiring COMPANY (not the ATS vendor like "
-        "Greenhouse/Lever/Workday), the ROLE title if present, and a STATUS of "
-        "exactly one of: rejected, interviewing, offer, applied.\n"
-        "Most of these are rejections. If an email is clearly NOT about a job "
-        'application outcome, set status to "skip".\n\n'
+        "For each email return:\n"
+        "- company: the HIRING company in Title Case (e.g. 'Stripe', 'Louis Vuitton'). "
+        "Never the ATS vendor or mail infra (Greenhouse, Lever, Workday, myworkday, "
+        "Rippling, iCIMS, SmartRecruiters). If 'X via Workday', the company is X. "
+        "If you genuinely cannot tell, use 'Unknown'.\n"
+        "- role_title: a CONCISE job title only (e.g. 'Backend Engineer', 'Data "
+        "Analyst Intern') — never a sentence or the email subject. Empty string if "
+        "no specific role is named.\n"
+        "- status: exactly one of rejected, interviewing, offer, applied.\n"
+        "Most of these are rejections. If an email is clearly NOT a job-application "
+        'outcome (newsletter, course ad, job alert digest), set status to "skip".\n\n'
         f"EMAILS:\n{json.dumps(compact, indent=2)}\n\n"
         'Respond with ONLY a JSON array, one object per email, like:\n'
-        '[{"i":0,"company":"Stripe","role_title":"React Frontend Engineer","status":"rejected"}]'
+        '[{"i":0,"company":"Stripe","role_title":"Backend Engineer","status":"rejected"}]'
     )
     try:
         resp = client.messages.create(
