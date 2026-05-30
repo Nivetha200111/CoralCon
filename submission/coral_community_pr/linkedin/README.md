@@ -84,6 +84,8 @@ sanitized.
 ```text
 $ coral source add --file ./linkedin/manifest.yaml
 Added source linkedin (secrets: none)
+
+$ coral source test linkedin
   ✓ linkedin connected successfully
     3 declared · 3 passed · 0 failed
     ✓ SELECT * FROM linkedin.skills LIMIT 1
