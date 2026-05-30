@@ -74,6 +74,40 @@ def _tab() -> str:
     return os.getenv("SHEETS_TAB", DEFAULT_TAB)
 
 
+_TAB_CACHE: dict[str, str] = {}
+
+
+def _resolved_tab(spreadsheet_id: str) -> str:
+    """The real first-sheet title for this spreadsheet (or the SHEETS_TAB override).
+
+    Importing a CSV names the *spreadsheet* after the file but leaves the tab as
+    whatever Google chose, so a hardcoded tab name breaks. When SHEETS_TAB isn't
+    set we ask the API for the actual first sheet's title and use that, which
+    works regardless of what the tab is called.
+    """
+    explicit = os.getenv("SHEETS_TAB")
+    if explicit:
+        return explicit
+    if spreadsheet_id in _TAB_CACHE:
+        return _TAB_CACHE[spreadsheet_id]
+    meta = (
+        _service()
+        .spreadsheets()
+        .get(spreadsheetId=spreadsheet_id, fields="sheets.properties.title")
+        .execute()
+    )
+    sheets = meta.get("sheets", [])
+    title = sheets[0]["properties"]["title"] if sheets else DEFAULT_TAB
+    _TAB_CACHE[spreadsheet_id] = title
+    return title
+
+
+def _rng(spreadsheet_id: str, a1: str) -> str:
+    """Build an A1 range against the resolved tab, quoted to survive spaces/symbols."""
+    title = _resolved_tab(spreadsheet_id).replace("'", "''")
+    return f"'{title}'!{a1}"
+
+
 # ---------------------------------------------------------------------------
 # Normalization helpers (shared shape with coral_client app dicts)
 # ---------------------------------------------------------------------------
@@ -113,7 +147,7 @@ def _cells_to_row(header: list[str], cells: list[str]) -> dict:
 def read_applications(spreadsheet_id: str | None = None) -> list[dict]:
     """Read the tracker sheet into dict rows, mapping the header row to columns."""
     sid = _spreadsheet_id(spreadsheet_id)
-    rng = f"{_tab()}!A1:Z10000"
+    rng = _rng(sid, "A1:Z10000")
     resp = (
         _service()
         .spreadsheets()
@@ -143,10 +177,10 @@ def write_applications(rows: list[dict], spreadsheet_id: str | None = None) -> i
     svc = _service().spreadsheets().values()
     body_rows = [COLUMNS] + [_row_to_cells(r) for r in rows]
 
-    svc.clear(spreadsheetId=sid, range=f"{_tab()}!A1:Z10000").execute()
+    svc.clear(spreadsheetId=sid, range=_rng(sid, "A1:Z10000")).execute()
     svc.update(
         spreadsheetId=sid,
-        range=f"{_tab()}!A1",
+        range=_rng(sid, "A1"),
         valueInputOption="RAW",
         body={"values": body_rows},
     ).execute()
@@ -170,7 +204,7 @@ def append_applications(rows: list[dict], spreadsheet_id: str | None = None) -> 
     _ensure_header(sid)
     _service().spreadsheets().values().append(
         spreadsheetId=sid,
-        range=f"{_tab()}!A1",
+        range=_rng(sid, "A1"),
         valueInputOption="RAW",
         insertDataOption="INSERT_ROWS",
         body={"values": [_row_to_cells(r) for r in new_rows]},
@@ -180,11 +214,11 @@ def append_applications(rows: list[dict], spreadsheet_id: str | None = None) -> 
 
 def _ensure_header(spreadsheet_id: str) -> None:
     svc = _service().spreadsheets().values()
-    resp = svc.get(spreadsheetId=spreadsheet_id, range=f"{_tab()}!A1:Z1").execute()
+    resp = svc.get(spreadsheetId=spreadsheet_id, range=_rng(spreadsheet_id, "A1:Z1")).execute()
     if not resp.get("values"):
         svc.update(
             spreadsheetId=spreadsheet_id,
-            range=f"{_tab()}!A1",
+            range=_rng(spreadsheet_id, "A1"),
             valueInputOption="RAW",
             body={"values": [COLUMNS]},
         ).execute()
