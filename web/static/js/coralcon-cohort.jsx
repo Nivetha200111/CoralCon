@@ -1,12 +1,34 @@
 // CoralCon Cohort Tab — Multi-candidate analysis for enterprise/bootcamp framing
 
 function CohortTab({ tweaks }) {
-  const data = CORALCON_DATA;
+  const [data, setData] = React.useState(CORALCON_DATA.cohort);
   const accent = tweaks.accentColor || '#f0a500';
-  const theme = tweaks.theme || 'dark';
-  const candidates = data.cohort.candidates;
-  const gaps = data.cohort.commonGaps;
-  const actions = data.cohort.actions;
+  const candidates = data.candidates || [];
+  const gaps = data.commonGaps || data.common_gaps || [];
+  const actions = data.actions || [];
+
+  React.useEffect(() => {
+    fetch('/api/cohort')
+      .then(r => r.ok ? r.json() : null)
+      .then(payload => {
+        if (payload) {
+          setData({
+            candidates: (payload.candidates || payload.leaderboard || []).map(item => ({
+              name: item.name || item.candidate || 'Candidate',
+              score: item.score || item.health_score || 0,
+              topIssue: item.topIssue || item.best_fit || payload.most_common_rejection_cause || 'Needs review',
+            })),
+            commonGaps: (payload.common_gaps || payload.commonGaps || payload.top_missing_skills || []).map(item => ({
+              skill: item.skill || 'Skill',
+              count: item.count || item.times_required || 0,
+              pct: item.pct || Math.min(100, (item.times_required || item.count || 0) * 10),
+            })),
+            actions: payload.actions || payload.placement_actions || [],
+          });
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const scoreColor = (score) => {
     if (score >= 60) return 'var(--cc-teal)';
@@ -38,7 +60,7 @@ function CohortTab({ tweaks }) {
         <div className="cc-stat-card">
           <div className="cc-stat-label">Avg Health Score</div>
           <div className="cc-stat-value" style={{ color: 'var(--cc-red)' }}>
-            <AnimCounter target={Math.round(candidates.reduce((s, c) => s + c.score, 0) / candidates.length)} />
+            <AnimCounter target={candidates.length ? Math.round(candidates.reduce((s, c) => s + c.score, 0) / candidates.length) : 0} />
           </div>
           <div style={{ fontSize: 12, color: 'var(--cc-text-muted)' }}>below 50 threshold</div>
         </div>
@@ -53,6 +75,11 @@ function CohortTab({ tweaks }) {
       {/* Leaderboard */}
       <div className="cc-section-title">Candidate Health Scores</div>
       <div className="cc-leaderboard" style={{ marginBottom: 'var(--cc-sp-6)' }}>
+        {candidates.length === 0 && (
+          <div className="cc-card" style={{ color: 'var(--cc-text-muted)' }}>
+            No cohort data is loaded yet.
+          </div>
+        )}
         {candidates.map((c, i) => (
           <Reveal key={i} delay={i * 50}>
           <div className="cc-leaderboard-row">

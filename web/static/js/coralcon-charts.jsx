@@ -23,6 +23,9 @@ function getChartColors(theme, accent) {
 function RejectionBars({ data, animate }) {
   const [show, setShow] = useState(false);
   useEffect(() => { if (animate) { const t = setTimeout(() => setShow(true), 200); return () => clearTimeout(t); } }, [animate]);
+  if (!data || data.length === 0) {
+    return <div style={{ color: 'var(--cc-text-muted)', fontSize: 13 }}>Import applications to see rejection patterns.</div>;
+  }
 
   const getSeverity = (rate) => {
     if (rate >= 80) return 'critical';
@@ -113,7 +116,7 @@ function SkillRadar({ data, theme, accent, chartStyle }) {
   const chartRef = useRef(null);
 
   useEffect(() => {
-    if (!canvasRef.current || !data) return;
+    if (!canvasRef.current || !data || !data.labels || data.labels.length === 0) return;
     const c = getChartColors(theme, accent);
     const filled = chartStyle !== 'outlined';
 
@@ -164,6 +167,9 @@ function SkillRadar({ data, theme, accent, chartStyle }) {
     return () => { if (chartRef.current) chartRef.current.destroy(); };
   }, [data, theme, accent, chartStyle]);
 
+  if (!data || !data.labels || data.labels.length === 0) {
+    return <div style={{ color: 'var(--cc-text-muted)', fontSize: 13 }}>Upload a resume and import applications to map skill gaps.</div>;
+  }
   return <canvas ref={canvasRef} />;
 }
 
@@ -173,7 +179,7 @@ function TimingChart({ data, theme, accent, chartStyle }) {
   const chartRef = useRef(null);
 
   useEffect(() => {
-    if (!canvasRef.current || !data) return;
+    if (!canvasRef.current || !data || data.length === 0) return;
     const c = getChartColors(theme, accent);
     const filled = chartStyle !== 'outlined';
 
@@ -232,6 +238,9 @@ function TimingChart({ data, theme, accent, chartStyle }) {
     return () => { if (chartRef.current) chartRef.current.destroy(); };
   }, [data, theme, accent, chartStyle]);
 
+  if (!data || data.length === 0) {
+    return <div style={{ color: 'var(--cc-text-muted)', fontSize: 13 }}>Import dated applications to see timing patterns.</div>;
+  }
   return <canvas ref={canvasRef} />;
 }
 
@@ -240,6 +249,9 @@ function CacheBars({ run1, run2 }) {
   const [show, setShow] = useState(false);
   useEffect(() => { const t = setTimeout(() => setShow(true), 300); return () => clearTimeout(t); }, []);
   const max = Math.max(run1, run2);
+  if (!max) {
+    return <div style={{ color: 'var(--cc-text-muted)', fontSize: 13 }}>Run the cache benchmark to populate this chart.</div>;
+  }
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>

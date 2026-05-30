@@ -72,7 +72,7 @@ function LiveStatusPill() {
       }}
       title={live
         ? `Coral connected: ${connected.join(', ') || 'sources'}`
-        : 'Running on bundled demo data'}
+        : 'Running on local imported/sample data'}
     >
       <span style={{
         width: 8, height: 8, borderRadius: '50%',
@@ -80,7 +80,7 @@ function LiveStatusPill() {
       }} />
       {live
         ? <>Live via Coral{connected.length ? ` · ${connected.join(' · ')}` : ''}</>
-        : <>Demo data</>}
+        : <>Local data</>}
     </div>
   );
 }

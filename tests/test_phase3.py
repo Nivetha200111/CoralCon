@@ -7,6 +7,7 @@ from coralcon.demo.judge_demo import run_judge_demo
 from coralcon.portfolio.inspector import _detect_skills
 from coralcon.proof.query_logger import get_query_log, reset_query_log
 from coralcon.queries import rejection_patterns
+from coralcon.resume import parse_resume_upload, public_resume_profile
 from coralcon.submission.pack_generator import generate_submission_pack
 
 
@@ -65,3 +66,27 @@ def test_sqlite_database_seeds_and_serves_queries(tmp_path, monkeypatch):
     assert status["tables"]["applications"] == 8
     assert status["tables"]["rejection_patterns"] == 6
     assert sum(row["total"] for row in rejection_patterns.fetch()) == 147
+
+
+def test_resume_upload_parser_extracts_profile(tmp_path, monkeypatch):
+    monkeypatch.setenv("CORALCON_RUNS_DIR", str(tmp_path))
+    content = b"""
+Nivetha Example
+nivetha@example.com
+https://github.com/nivetha
+
+Skills
+Python, React, TypeScript, FastAPI, Docker, AWS
+
+Projects
+Built a production FastAPI and React dashboard.
+"""
+    profile = parse_resume_upload("resume.txt", content)
+    public = public_resume_profile(profile)
+
+    assert profile["email"] == "nivetha@example.com"
+    assert "python" in profile["skills"]
+    assert "react" in profile["skills"]
+    assert public["filename"] == "resume.txt"
+    assert public["sections"]["projects"]
+    assert "text" not in public

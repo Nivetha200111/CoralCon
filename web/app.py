@@ -1,7 +1,7 @@
 """FastAPI web dashboard for CoralCon."""
 
 import os
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, File, Request, UploadFile
 from pydantic import BaseModel
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -22,6 +22,7 @@ from coralcon.agents import recommender, router
 from coralcon.cohort.analyzer import analyze_cohort
 from coralcon.portfolio import inspect_portfolio
 from coralcon.proof.report import proof_summary
+from coralcon.resume import parse_resume_upload, public_resume_profile
 from coralcon.utils.coral_client import check_coral_connection
 
 load_dotenv()
@@ -152,6 +153,23 @@ async def api_gmail_import(payload: GmailImportRequest):
     return await run_in_threadpool(_run_gmail_import, payload)
 
 
+@app.post("/api/resume/upload")
+async def api_resume_upload(file: UploadFile = File(...)):
+    try:
+        content = await file.read()
+        profile = await run_in_threadpool(parse_resume_upload, file.filename or "resume", content)
+    except ValueError as exc:
+        return JSONResponse({"ok": False, "error": str(exc)}, status_code=400)
+    except Exception as exc:  # noqa: BLE001
+        return JSONResponse({"ok": False, "error": f"Resume upload failed: {exc}"}, status_code=500)
+    return {"ok": True, "resume": public_resume_profile(profile)}
+
+
+@app.get("/api/resume")
+async def api_resume():
+    return {"resume": public_resume_profile()}
+
+
 def _run_gmail_import(payload: GmailImportRequest) -> dict:
     from coralcon.google import auth as google_auth
     from coralcon.gmail import extractor
@@ -176,9 +194,9 @@ def _run_gmail_import(payload: GmailImportRequest) -> dict:
         try:
             from coralcon.sheets import client as sheets_client
 
-            sheets_client.append_applications(rows)
+            added_to_sheet = sheets_client.append_applications(rows)
             sheets_client.sync_to_csv(spreadsheet_id, sheets_client._csv_path())
-            sheet_written = True
+            sheet_written = added_to_sheet >= 0
         except Exception as exc:  # noqa: BLE001
             sheet_error = str(exc)
 
@@ -193,6 +211,8 @@ def _run_gmail_import(payload: GmailImportRequest) -> dict:
         "sheetWritten": sheet_written,
         "sheetError": sheet_error,
         "rowsPreview": rows[:8],
+        "query": payload.query or None,
+        "usedAi": payload.use_ai and bool(os.getenv("ANTHROPIC_API_KEY")),
         "usingSampleData": os.getenv("CORAL_AVAILABLE", "false").lower() != "true",
     }
 
@@ -335,16 +355,21 @@ async def api_ask(payload: AskRequest):
 
 
 def _build_dashboard_payload() -> dict:
+    connection = check_coral_connection()
     patterns = rejection_patterns.fetch()
     github_rows = github_correlation.fetch()
     gaps = skill_gaps.fetch()
     timing = timing_analysis.fetch()
     followups = followup_tracker.fetch()
     portfolio = inspect_portfolio()
+    resume = public_resume_profile()
 
     detected = {str(skill).casefold() for skill in portfolio.get("detected_skills", [])}
+    resume_skills = {str(skill).casefold() for skill in (resume or {}).get("skills", [])}
     for gap in gaps:
-        gap["in_portfolio"] = str(gap.get("skill", "")).casefold() in detected
+        skill = str(gap.get("skill", "")).casefold()
+        gap["in_portfolio"] = skill in detected
+        gap["in_resume"] = skill in resume_skills
 
     totals = AnalystAgent._totals(patterns)
     github_signal = recommender.compute_github_signal(github_rows, github_rows)
@@ -369,7 +394,13 @@ def _build_dashboard_payload() -> dict:
         "timing": _map_timing(timing),
         "insights": _map_insights(patterns, gaps, github_signal, actions, portfolio),
         "portfolio": portfolio,
-        "usingSampleData": os.getenv("CORAL_AVAILABLE", "false").lower() != "true",
+        "resume": resume,
+        "usingSampleData": not (
+            connection.get("coral_installed")
+            and connection.get("sheets_connected")
+            and connection.get("github_connected")
+            and connection.get("linkedin_connected")
+        ),
     }
 
 
@@ -413,7 +444,8 @@ def _map_skill_radar(gaps: list[dict]) -> dict:
                 100,
                 (35 if gap.get("in_github") else 0)
                 + (35 if gap.get("in_linkedin") else 0)
-                + (30 if gap.get("in_portfolio") else 0),
+                + (20 if gap.get("in_portfolio") else 0)
+                + (10 if gap.get("in_resume") else 0),
             )
             for gap in top
         ],
@@ -476,6 +508,7 @@ def _map_insights(
                 ("GitHub", top_gap.get("in_github")),
                 ("LinkedIn", top_gap.get("in_linkedin")),
                 ("portfolio", top_gap.get("in_portfolio")),
+                ("resume", top_gap.get("in_resume")),
             )
             if not present
         ]
@@ -523,6 +556,40 @@ def _map_insights(
                 "impact": "A working portfolio with clear proof is the fastest way to stand out.",
                 "evidence": {"queryId": "portfolio_scan", "rows": 1, "sources": [portfolio.get("url") or "portfolio"]},
                 "confidence": 0.72,
+            }
+        )
+
+    resume = public_resume_profile()
+    if resume:
+        skills = resume.get("skills", [])
+        missing_sections = [
+            label
+            for key, label in (
+                ("projects", "projects"),
+                ("experience", "experience"),
+                ("links", "proof links"),
+            )
+            if not resume.get("sections", {}).get(key)
+        ]
+        insights.append(
+            {
+                "id": "resume-scan",
+                "title": "Resume profile imported",
+                "severity": "medium" if missing_sections else "low",
+                "claim": f"Your resume shows {len(skills)} recruiter-visible skills.",
+                "rootCause": (
+                    f"Missing resume sections: {', '.join(missing_sections)}."
+                    if missing_sections
+                    else "Resume has the core sections CoralCon expects."
+                ),
+                "action": (
+                    f"Add {missing_sections[0]} to the resume and include measurable project evidence."
+                    if missing_sections
+                    else "Keep the imported resume in sync as you update your profile."
+                ),
+                "impact": "Resume skills now count toward profile-fit checks on the dashboard.",
+                "evidence": {"queryId": "resume_upload", "rows": 1, "sources": [resume.get("filename") or "resume"]},
+                "confidence": 0.7,
             }
         )
 

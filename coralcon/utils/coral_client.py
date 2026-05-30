@@ -41,7 +41,10 @@ def run_query(sql: str) -> list[dict]:
         return rows
 
     if _coral_available():
-        rows = _run_real_query(sql)
+        try:
+            rows = _run_real_query(sql)
+        except RuntimeError:
+            rows = _run_sample_query(sql) if _data_backend() == "json" else run_database_query(sql)
     elif _data_backend() == "json":
         rows = _run_sample_query(sql)
     else:

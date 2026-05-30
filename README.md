@@ -345,6 +345,42 @@ python -m coralcon.cli cohort analyze
 | **Coral required** | No | Yes |
 | **Output** | Identical on every run | Reflects current data |
 
+## Next Stage: ML Response Lift Simulator
+
+The next winning feature is a local ML layer that turns CoralCon from
+"here is what went wrong" into "here is the highest-leverage move before you
+apply again."
+
+**Response Lift Simulator** will train a local model on historical application
+outcomes and show how specific profile changes move the predicted response
+probability for a target role.
+
+Example:
+
+```text
+Target role: React Frontend Engineer
+
+Current predicted response chance:      18%
++ Add TypeScript project to resume:      31%
++ Show matching GitHub project:          39%
++ Apply within 48 hours of posting:      52%
+```
+
+Planned implementation:
+
+- Train a local `scikit-learn` classifier on `sheets.applications` outcomes.
+- Target label: `1` for `interviewing` / `offer`, `0` for `rejected` / `ghosted`.
+- Features: role keywords, required skill overlap, missing resume skills, GitHub
+  activity, LinkedIn skill overlap, days-to-apply bucket, source, and follow-up
+  status.
+- Model: start with `LogisticRegression(class_weight="balanced")`, then compare
+  against a small tree model if there is enough data.
+- Output: current response probability, best intervention, top feature weights,
+  and a what-if UI with toggles for resume skills, GitHub proof, LinkedIn skills,
+  fast application timing, and follow-up.
+- Positioning: predictions are directional and local; Coral query evidence
+  remains the source of truth.
+
 ## Privacy
 
 CoralCon is local-first by design. Raw source data stays on your machine. Coral queries execute locally. If LLM analysis is enabled (`ANTHROPIC_API_KEY`), only summarized query results are sent to the Claude API — never raw application data, company names, or personal details.

@@ -58,7 +58,6 @@ function QueryCard({ query, accent }) {
 
 /* ====== PROOF TAB ====== */
 function ProofTab({ tweaks }) {
-  const data = CORALCON_DATA;
   const [liveProof, setLiveProof] = React.useState(null);
   const accent = tweaks.accentColor || '#f0a500';
 
@@ -79,16 +78,16 @@ function ProofTab({ tweaks }) {
     rows: q.rows_returned,
     executionMs: q.execution_ms,
     cached: q.used_cache,
-  })) : data.coralQueries;
+  })) : [];
   const crossSourceCount = queries.filter(q => q.crossSource).length;
   const totalRows = queries.reduce((s, q) => s + q.rows, 0);
   const allSources = [...new Set(queries.flatMap(q => q.sources))];
-  const avgExec = Math.round(queries.reduce((s, q) => s + q.executionMs, 0) / queries.length);
+  const avgExec = queries.length ? Math.round(queries.reduce((s, q) => s + q.executionMs, 0) / queries.length) : 0;
   const cachedCount = queries.filter(q => q.cached).length;
   const hitRate = liveProof && liveProof.cache_hit_rate != null
     ? liveProof.cache_hit_rate
     : (queries.length ? Math.round(cachedCount * 100 / queries.length) : 0);
-  const mode = liveProof ? liveProof.mode : (data.usingSampleData ? 'sample' : 'real');
+  const mode = liveProof ? liveProof.mode : 'sample';
   const bestCross = queries.filter(q => q.crossSource).sort((a, b) => b.sources.length - a.sources.length || b.rows - a.rows)[0];
 
   return (
@@ -198,17 +197,17 @@ function ProofTab({ tweaks }) {
           <div>
             <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 4 }}>Repeated Query Speedup</div>
             <div style={{ fontSize: 13, color: 'var(--cc-text-muted)' }}>
-              Query: <span style={{ fontFamily: 'var(--cc-font-mono)', color: 'var(--cc-text-secondary)' }}>{data.cacheBenchmark.query}</span>
+              Query: <span style={{ fontFamily: 'var(--cc-font-mono)', color: 'var(--cc-text-secondary)' }}>skill_gap_detection_cross_source</span>
             </div>
           </div>
           <div style={{ textAlign: 'right' }}>
             <div style={{ fontFamily: 'var(--cc-font-display)', fontSize: 32, fontWeight: 700, color: 'var(--cc-teal)' }}>
-              {data.cacheBenchmark.speedup}
+              {liveProof && liveProof.cache_hit_rate ? `${liveProof.cache_hit_rate}%` : '0%'}
             </div>
             <div style={{ fontSize: 11, color: 'var(--cc-text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Speedup</div>
           </div>
         </div>
-        <CacheBars run1={data.cacheBenchmark.run1Ms} run2={data.cacheBenchmark.run2Ms} />
+        <CacheBars run1={0} run2={0} />
         <p style={{ fontSize: 12, color: 'var(--cc-text-muted)', marginTop: 12, fontStyle: 'italic' }}>
           Coral avoids repeated expensive API/file retrieval during agent analysis.
         </p>
@@ -219,6 +218,11 @@ function ProofTab({ tweaks }) {
       <Reveal>
         <div className="cc-section-title">All Coral Queries ({queries.length})</div>
       </Reveal>
+      {queries.length === 0 && (
+        <div className="cc-card" style={{ color: 'var(--cc-text-muted)' }}>
+          No proof queries have been logged yet. Import data or run an analysis to populate this view.
+        </div>
+      )}
       {queries.map((q, i) => (
         <Reveal key={q.id} delay={i * 50}>
           <QueryCard query={q} accent={accent} />
