@@ -18,7 +18,7 @@ SKILL_KEYWORDS = {
     "cassandra": ["cassandra"],
     "cobol": ["cobol"],
     "db2": ["db2"],
-    "docker": ["docker", "container"],
+    "docker": ["docker"],  # "container" matched Tailwind's `container` class
     "figma": ["figma"],
     "fastapi": ["fastapi"],
     "flask": ["flask"],
@@ -32,7 +32,7 @@ SKILL_KEYWORDS = {
     "javascript": ["javascript", "node.js", "nodejs"],
     "kubernetes": ["kubernetes", "k8s"],
     "llm": ["llm", "llama", "llama3"],
-    "machine learning": ["machine learning", "ml", "tensorflow", "pytorch"],
+    "machine learning": ["machine learning", "tensorflow", "pytorch"],  # bare "ml" hit `ml-4`
     "mysql": ["mysql"],
     "next.js": ["next.js", "nextjs"],
     "nlp": ["nlp"],
@@ -45,12 +45,12 @@ SKILL_KEYWORDS = {
     "python": ["python", "django", "flask"],
     "react": ["react", "react.js", "reactjs"],
     "redis": ["redis"],
-    "rest apis": ["rest api", "rest apis", "restful", "api"],
+    "rest apis": ["rest api", "rest apis", "restful"],  # bare "api" is too noisy
     "servicenow": ["servicenow"],
     "sql": ["sql"],
     "system design": ["system design", "distributed system", "distributed systems"],
     "terraform": ["terraform"],
-    "typescript": ["typescript", "ts"],
+    "typescript": ["typescript"],  # bare "ts" is too noisy
     "vercel": ["vercel"],
 }
 
