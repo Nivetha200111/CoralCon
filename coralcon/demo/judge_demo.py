@@ -27,6 +27,29 @@ def run_judge_demo(sample: bool = True) -> dict:
     return {"result": result, "evidence_path": str(evidence_path)}
 
 
+def run_real_demo() -> dict:
+    """Run the judge demo against real Coral connections (CORAL_AVAILABLE=true)."""
+    previous = os.getenv("CORAL_AVAILABLE")
+    os.environ["CORAL_AVAILABLE"] = "true"
+
+    reset_query_log()
+    result = CoralConOrchestrator().run_full_analysis(use_ai=False, dry_run=True)
+    generate_submission_pack()
+    evidence_path = _write_evidence_pack(result)
+
+    if previous is None:
+        os.environ.pop("CORAL_AVAILABLE", None)
+    else:
+        os.environ["CORAL_AVAILABLE"] = previous
+
+    return {"result": result, "evidence_path": str(evidence_path)}
+
+
+def real_demo_lines(payload: dict) -> list[str]:
+    """Format the real-Coral demo output."""
+    return demo_lines(payload["result"], payload["evidence_path"], sample=False)
+
+
 def demo_lines(result: dict, evidence_path: str, sample: bool = True) -> list[str]:
     insights = result["insights"]
     patterns = insights.get("rejection_patterns", [])

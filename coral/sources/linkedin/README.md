@@ -51,4 +51,4 @@ ORDER BY times_required DESC
 ## Notes
 - LinkedIn GDPR export is legitimate data access — no scraping, no API key needed
 - Refresh by re-downloading your export (LinkedIn allows one export per 24h)
-- Submitted as a PR to Coral for the $100 bounty: [PR link]
+- Submitted as a PR to Coral for the $100 bounty: [withcoral/coral#994](https://github.com/withcoral/coral/pull/994)

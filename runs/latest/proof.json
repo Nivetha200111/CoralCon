@@ -1,39 +1,6 @@
 [
   {
     "query_id": "q_001",
-    "query_name": "rejection_patterns",
-    "sql": "SELECT n.role_title, COUNT(*) as total, SUM(CASE WHEN n.status = 'rejected' THEN 1 ELSE 0 END) as rejected, SUM(CASE WHEN n.status = 'ghosted' THEN 1 ELSE 0 END) as ghosted, SUM(CASE WHEN n.status = 'interviewing' THEN 1 ELSE 0 END) as interviewed, SUM(CASE WHEN n.status = 'offer' THEN 1 ELSE 0 END) as offers, ROUND( SUM(CASE WHEN n.status = 'rejected' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1 ) as rejection_rate, ROUND( SUM(CASE WHEN n.status = 'ghosted' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1 ) as ghost_rate, ROUND( (SUM(CASE WHEN n.status IN ('interviewing', 'offer') THEN 1 ELSE 0 END)) * 100.0 / COUNT(*), 1 ) as response_rate FROM sheets.applications n GROUP BY n.role_title ORDER BY rejection_rate DESC",
-    "sources_used": [
-      "sheets.applications"
-    ],
-    "is_cross_source": false,
-    "rows_returned": 39,
-    "execution_ms": 1018.91,
-    "execution_time_ms": 1018.91,
-    "used_cache": false,
-    "cache_hit": false,
-    "mode": "real",
-    "timestamp": "2026-05-30T19:38:24"
-  },
-  {
-    "query_id": "q_002",
-    "query_name": "github_activity_correlation",
-    "sql": "SELECT n.company, n.applied_date, n.status, n.role_title, g.commits_count, g.active_repos, g.languages FROM sheets.applications n JOIN github.activity g ON g.week = date_trunc('week', n.applied_date) WHERE n.status IN ('rejected', 'ghosted', 'interviewing', 'offer') ORDER BY n.applied_date DESC",
-    "sources_used": [
-      "github.activity",
-      "sheets.applications"
-    ],
-    "is_cross_source": true,
-    "rows_returned": 40,
-    "execution_ms": 4193.95,
-    "execution_time_ms": 4193.95,
-    "used_cache": false,
-    "cache_hit": false,
-    "mode": "real",
-    "timestamp": "2026-05-30T19:38:28"
-  },
-  {
-    "query_id": "q_003",
     "query_name": "skill_gap_detection",
     "sql": "WITH demand AS ( SELECT TRIM(skill) AS skill, COUNT(*) AS times_required FROM ( SELECT UNNEST(string_to_array(n.required_skills, ';')) AS skill FROM sheets.applications n WHERE n.status = 'rejected' AND n.required_skills <> '' ) GROUP BY TRIM(skill) ), li AS (SELECT DISTINCT LOWER(name) AS name FROM linkedin.skills), gh AS (SELECT DISTINCT LOWER(language) AS lang FROM github.user_repos WHERE language IS NOT NULL) SELECT d.skill, d.times_required, MAX(CASE WHEN li.name LIKE '%' || LOWER(d.skill) || '%' THEN 1 ELSE 0 END) AS in_linkedin, MAX(CASE WHEN gh.lang = LOWER(d.skill) THEN 1 ELSE 0 END) AS in_github FROM demand d LEFT JOIN li ON li.name LIKE '%' || LOWER(d.skill) || '%' LEFT JOIN gh ON gh.lang = LOWER(d.skill) GROUP BY d.skill, d.times_required ORDER BY d.times_required DESC, in_linkedin ASC, in_github ASC LIMIT 15",
     "sources_used": [
@@ -43,126 +10,11 @@
     ],
     "is_cross_source": true,
     "rows_returned": 15,
-    "execution_ms": 7522.04,
-    "execution_time_ms": 7522.04,
+    "execution_ms": 7841.3,
+    "execution_time_ms": 7841.3,
     "used_cache": false,
     "cache_hit": false,
     "mode": "real",
-    "timestamp": "2026-05-30T19:38:36"
-  },
-  {
-    "query_id": "q_004",
-    "query_name": "timing_analysis",
-    "sql": "SELECT CASE WHEN days_to_apply <= 1 THEN 'same_day' WHEN days_to_apply <= 2 THEN '1-2_days' WHEN days_to_apply <= 7 THEN '3-7_days' WHEN days_to_apply <= 14 THEN '1-2_weeks' ELSE '2_weeks_plus' END as timing_bucket, COUNT(*) as total, ROUND( SUM(CASE WHEN status IN ('interviewing', 'offer') THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1 ) as response_rate, ROUND( SUM(CASE WHEN status = 'ghosted' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1 ) as ghost_rate FROM sheets.applications GROUP BY timing_bucket ORDER BY CASE timing_bucket WHEN 'same_day' THEN 1 WHEN '1-2_days' THEN 2 WHEN '3-7_days' THEN 3 WHEN '1-2_weeks' THEN 4 ELSE 5 END",
-    "sources_used": [
-      "sheets.applications"
-    ],
-    "is_cross_source": false,
-    "rows_returned": 1,
-    "execution_ms": 791.09,
-    "execution_time_ms": 791.09,
-    "used_cache": false,
-    "cache_hit": false,
-    "mode": "real",
-    "timestamp": "2026-05-30T19:38:36"
-  },
-  {
-    "query_id": "q_005",
-    "query_name": "followup_tracker",
-    "sql": "SELECT n.company, n.role_title, n.applied_date, DATEDIFF('day', n.applied_date, CURRENT_DATE) as days_waiting, CASE WHEN DATEDIFF('day', n.applied_date, CURRENT_DATE) BETWEEN 7 AND 14 THEN 'hot' WHEN DATEDIFF('day', n.applied_date, CURRENT_DATE) BETWEEN 15 AND 21 THEN 'warm' ELSE 'cold' END as priority, CASE WHEN DATEDIFF('day', n.applied_date, CURRENT_DATE) BETWEEN 7 AND 14 THEN 'Send follow-up email now (22% success rate at day 10)' WHEN DATEDIFF('day', n.applied_date, CURRENT_DATE) BETWEEN 15 AND 21 THEN 'Last chance follow-up (8% success rate)' ELSE 'Move on \u2014 mark as ghosted' END as recommended_action FROM sheets.applications n WHERE n.status = 'applied' AND DATEDIFF('day', n.applied_date, CURRENT_DATE) >= 7 ORDER BY days_waiting ASC",
-    "sources_used": [
-      "sheets.applications"
-    ],
-    "is_cross_source": false,
-    "rows_returned": 0,
-    "execution_ms": 837.18,
-    "execution_time_ms": 837.18,
-    "used_cache": false,
-    "cache_hit": false,
-    "mode": "real",
-    "timestamp": "2026-05-30T19:38:37"
-  },
-  {
-    "query_id": "q_006",
-    "query_name": "rejection_patterns",
-    "sql": "SELECT n.role_title, COUNT(*) as total, SUM(CASE WHEN n.status = 'rejected' THEN 1 ELSE 0 END) as rejected, SUM(CASE WHEN n.status = 'ghosted' THEN 1 ELSE 0 END) as ghosted, SUM(CASE WHEN n.status = 'interviewing' THEN 1 ELSE 0 END) as interviewed, SUM(CASE WHEN n.status = 'offer' THEN 1 ELSE 0 END) as offers, ROUND( SUM(CASE WHEN n.status = 'rejected' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1 ) as rejection_rate, ROUND( SUM(CASE WHEN n.status = 'ghosted' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1 ) as ghost_rate, ROUND( (SUM(CASE WHEN n.status IN ('interviewing', 'offer') THEN 1 ELSE 0 END)) * 100.0 / COUNT(*), 1 ) as response_rate FROM sheets.applications n GROUP BY n.role_title ORDER BY rejection_rate DESC",
-    "sources_used": [
-      "sheets.applications"
-    ],
-    "is_cross_source": false,
-    "rows_returned": 39,
-    "execution_ms": 0.0,
-    "execution_time_ms": 0.0,
-    "used_cache": true,
-    "cache_hit": true,
-    "mode": "real",
-    "timestamp": "2026-05-30T19:38:37"
-  },
-  {
-    "query_id": "q_007",
-    "query_name": "github_activity_correlation",
-    "sql": "SELECT n.company, n.applied_date, n.status, n.role_title, g.commits_count, g.active_repos, g.languages FROM sheets.applications n JOIN github.activity g ON g.week = date_trunc('week', n.applied_date) WHERE n.status IN ('rejected', 'ghosted', 'interviewing', 'offer') ORDER BY n.applied_date DESC",
-    "sources_used": [
-      "github.activity",
-      "sheets.applications"
-    ],
-    "is_cross_source": true,
-    "rows_returned": 40,
-    "execution_ms": 0.0,
-    "execution_time_ms": 0.0,
-    "used_cache": true,
-    "cache_hit": true,
-    "mode": "real",
-    "timestamp": "2026-05-30T19:38:37"
-  },
-  {
-    "query_id": "q_008",
-    "query_name": "skill_gap_detection",
-    "sql": "WITH demand AS ( SELECT TRIM(skill) AS skill, COUNT(*) AS times_required FROM ( SELECT UNNEST(string_to_array(n.required_skills, ';')) AS skill FROM sheets.applications n WHERE n.status = 'rejected' AND n.required_skills <> '' ) GROUP BY TRIM(skill) ), li AS (SELECT DISTINCT LOWER(name) AS name FROM linkedin.skills), gh AS (SELECT DISTINCT LOWER(language) AS lang FROM github.user_repos WHERE language IS NOT NULL) SELECT d.skill, d.times_required, MAX(CASE WHEN li.name LIKE '%' || LOWER(d.skill) || '%' THEN 1 ELSE 0 END) AS in_linkedin, MAX(CASE WHEN gh.lang = LOWER(d.skill) THEN 1 ELSE 0 END) AS in_github FROM demand d LEFT JOIN li ON li.name LIKE '%' || LOWER(d.skill) || '%' LEFT JOIN gh ON gh.lang = LOWER(d.skill) GROUP BY d.skill, d.times_required ORDER BY d.times_required DESC, in_linkedin ASC, in_github ASC LIMIT 15",
-    "sources_used": [
-      "github.user_repos",
-      "linkedin.skills",
-      "sheets.applications"
-    ],
-    "is_cross_source": true,
-    "rows_returned": 15,
-    "execution_ms": 0.0,
-    "execution_time_ms": 0.0,
-    "used_cache": true,
-    "cache_hit": true,
-    "mode": "real",
-    "timestamp": "2026-05-30T19:38:37"
-  },
-  {
-    "query_id": "q_009",
-    "query_name": "timing_analysis",
-    "sql": "SELECT CASE WHEN days_to_apply <= 1 THEN 'same_day' WHEN days_to_apply <= 2 THEN '1-2_days' WHEN days_to_apply <= 7 THEN '3-7_days' WHEN days_to_apply <= 14 THEN '1-2_weeks' ELSE '2_weeks_plus' END as timing_bucket, COUNT(*) as total, ROUND( SUM(CASE WHEN status IN ('interviewing', 'offer') THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1 ) as response_rate, ROUND( SUM(CASE WHEN status = 'ghosted' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 1 ) as ghost_rate FROM sheets.applications GROUP BY timing_bucket ORDER BY CASE timing_bucket WHEN 'same_day' THEN 1 WHEN '1-2_days' THEN 2 WHEN '3-7_days' THEN 3 WHEN '1-2_weeks' THEN 4 ELSE 5 END",
-    "sources_used": [
-      "sheets.applications"
-    ],
-    "is_cross_source": false,
-    "rows_returned": 1,
-    "execution_ms": 0.0,
-    "execution_time_ms": 0.0,
-    "used_cache": true,
-    "cache_hit": true,
-    "mode": "real",
-    "timestamp": "2026-05-30T19:38:37"
-  },
-  {
-    "query_id": "q_010",
-    "query_name": "followup_tracker",
-    "sql": "SELECT n.company, n.role_title, n.applied_date, DATEDIFF('day', n.applied_date, CURRENT_DATE) as days_waiting, CASE WHEN DATEDIFF('day', n.applied_date, CURRENT_DATE) BETWEEN 7 AND 14 THEN 'hot' WHEN DATEDIFF('day', n.applied_date, CURRENT_DATE) BETWEEN 15 AND 21 THEN 'warm' ELSE 'cold' END as priority, CASE WHEN DATEDIFF('day', n.applied_date, CURRENT_DATE) BETWEEN 7 AND 14 THEN 'Send follow-up email now (22% success rate at day 10)' WHEN DATEDIFF('day', n.applied_date, CURRENT_DATE) BETWEEN 15 AND 21 THEN 'Last chance follow-up (8% success rate)' ELSE 'Move on \u2014 mark as ghosted' END as recommended_action FROM sheets.applications n WHERE n.status = 'applied' AND DATEDIFF('day', n.applied_date, CURRENT_DATE) >= 7 ORDER BY days_waiting ASC",
-    "sources_used": [
-      "sheets.applications"
-    ],
-    "is_cross_source": false,
-    "rows_returned": 0,
-    "execution_ms": 0.0,
-    "execution_time_ms": 0.0,
-    "used_cache": true,
-    "cache_hit": true,
-    "mode": "real",
-    "timestamp": "2026-05-30T19:38:37"
+    "timestamp": "2026-05-31T08:36:30"
   }
 ]

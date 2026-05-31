@@ -25,3 +25,8 @@ google_token.json
 # Real personal application data — never commit
 data/applications.csv
 data/applications.demo-backup.csv
+
+# Real LinkedIn export — contains personal contact data (phone, email, connections)
+data/linkedin_export/
+*.zip
+*.zip.zip
