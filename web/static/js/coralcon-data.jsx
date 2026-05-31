@@ -26,7 +26,6 @@ const CORALCON_DATA = {
     speedup: '0x',
   },
   portfolio: null,
-  resume: null,
   usingSampleData: false,
 };
 

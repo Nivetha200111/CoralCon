@@ -593,7 +593,7 @@ function DashboardTab({ tweaks }) {
           <div className="cc-card">
             <div className="cc-card-title">Import your data to generate insights</div>
             <p style={{ color: 'var(--cc-text-secondary)', lineHeight: 1.6, marginTop: 'var(--cc-sp-2)' }}>
-              Upload your resume and import Gmail application outcomes from the Import tab.
+              Connect Google and import Gmail application outcomes from the Import tab.
               CoralCon will replace this with evidence-backed findings.
             </p>
           </div>
@@ -602,26 +602,6 @@ function DashboardTab({ tweaks }) {
           <InsightCard key={ins.id} insight={ins} startOpen={i === 0} delay={i * 60} />
         ))}
       </div>
-
-      {data.resume && (
-        <Reveal delay={120}>
-          <div className="cc-card" style={{ marginBottom: 'var(--cc-sp-6)' }}>
-            <div className="cc-card-title">Resume Signals</div>
-            <div className="cc-query-meta" style={{ marginTop: 'var(--cc-sp-3)' }}>
-              <span className="cc-query-meta-item">File: <strong>{data.resume.filename}</strong></span>
-              <span className="cc-query-meta-item">Skills: <strong>{(data.resume.skills || []).length}</strong></span>
-              <span className="cc-query-meta-item">Links: <strong>{(data.resume.links || []).length}</strong></span>
-            </div>
-            {(data.resume.skills || []).length > 0 && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 'var(--cc-sp-3)' }}>
-                {data.resume.skills.slice(0, 16).map(skill => (
-                  <span key={skill} className="cc-source-pill">{skill}</span>
-                ))}
-              </div>
-            )}
-          </div>
-        </Reveal>
-      )}
 
       {/* Portfolio Inspector */}
       <Reveal delay={120}>

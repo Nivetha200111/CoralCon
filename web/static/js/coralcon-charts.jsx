@@ -168,7 +168,7 @@ function SkillRadar({ data, theme, accent, chartStyle }) {
   }, [data, theme, accent, chartStyle]);
 
   if (!data || !data.labels || data.labels.length === 0) {
-    return <div style={{ color: 'var(--cc-text-muted)', fontSize: 13 }}>Upload a resume and import applications to map skill gaps.</div>;
+    return <div style={{ color: 'var(--cc-text-muted)', fontSize: 13 }}>Import applications to map skill gaps.</div>;
   }
   return <canvas ref={canvasRef} />;
 }

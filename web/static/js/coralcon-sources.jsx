@@ -9,14 +9,11 @@ function SourcesTab({ tweaks }) {
   const [loadingStatus, setLoadingStatus] = useSrcState(true);
   const [importing, setImporting] = useSrcState(false);
   const [result, setResult] = useSrcState(null);
-  const [resumeResult, setResumeResult] = useSrcState(null);
   const [error, setError] = useSrcState('');
-  const [resumeError, setResumeError] = useSrcState('');
   const [maxResults, setMaxResults] = useSrcState(50);
   const [query, setQuery] = useSrcState('');
   const [useAi, setUseAi] = useSrcState(true);
   const [writeSheet, setWriteSheet] = useSrcState(true);
-  const [resumeUploading, setResumeUploading] = useSrcState(false);
   const [banner, setBanner] = useSrcState('');
 
   // Surface the ?google=connected / ?google=error redirect from the OAuth callback.
@@ -74,29 +71,6 @@ function SourcesTab({ tweaks }) {
     }
   }
 
-  async function uploadResume(event) {
-    const file = event.target.files && event.target.files[0];
-    if (!file || resumeUploading) return;
-    setResumeUploading(true);
-    setResumeError('');
-    setResumeResult(null);
-    try {
-      const form = new FormData();
-      form.append('file', file);
-      const res = await fetch('/api/resume/upload', { method: 'POST', body: form });
-      const payload = await res.json();
-      if (!res.ok || payload.ok === false || payload.error) {
-        throw new Error(payload.error || `Upload failed (${res.status})`);
-      }
-      setResumeResult(payload.resume);
-    } catch (err) {
-      setResumeError(err.message || 'Resume upload failed.');
-    } finally {
-      setResumeUploading(false);
-      event.target.value = '';
-    }
-  }
-
   const connected = google && google.connected;
 
   return (
@@ -104,9 +78,9 @@ function SourcesTab({ tweaks }) {
       <div className="cc-page-header">
         <div className="cc-page-title">Import Your Data</div>
         <div className="cc-page-subtitle">
-          Upload your resume, connect Google, and pull rejection emails into your
-          tracker. CoralCon parses the data, updates your report, and keeps the
-          workflow in the browser.
+          Connect Google and pull rejection emails into your tracker. CoralCon
+          parses the data, updates your report, and keeps the workflow in the
+          browser.
         </div>
       </div>
 
@@ -116,58 +90,9 @@ function SourcesTab({ tweaks }) {
         </div>
       )}
 
-      {/* Step 1 — Resume */}
+      {/* Step 1 — Connect Google */}
       <div className="cc-card" style={{ marginBottom: 'var(--cc-sp-4)' }}>
-        <div className="cc-card-title" style={{ color: accent }}>1 · Upload resume</div>
-        <p style={{ marginTop: 'var(--cc-sp-2)', lineHeight: 1.6 }}>
-          Upload a PDF, DOCX, TXT, or Markdown resume. CoralCon extracts skills,
-          contact signals, links, and missing sections, then uses those skills in
-          profile-fit checks.
-        </p>
-        <div style={{ display: 'flex', gap: 'var(--cc-sp-2)', alignItems: 'center', marginTop: 'var(--cc-sp-3)', flexWrap: 'wrap' }}>
-          <label className="cc-portfolio-button" style={{ cursor: resumeUploading ? 'wait' : 'pointer' }}>
-            {resumeUploading ? 'Uploading...' : 'Choose Resume'}
-            <input
-              type="file"
-              accept=".pdf,.docx,.txt,.md,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-              onChange={uploadResume}
-              disabled={resumeUploading}
-              style={{ display: 'none' }}
-            />
-          </label>
-          <span style={{ fontSize: 12, color: 'var(--cc-text-muted)' }}>Max 2.5 MB</span>
-        </div>
-        {resumeError && (
-          <div className="cc-portfolio-error" style={{ marginTop: 'var(--cc-sp-3)' }}>
-            {resumeError}
-          </div>
-        )}
-        {resumeResult && (
-          <div style={{ marginTop: 'var(--cc-sp-4)' }}>
-            <div className="cc-query-meta">
-              <span className="cc-query-meta-item">File: <strong>{resumeResult.filename}</strong></span>
-              <span className="cc-query-meta-item">Skills: <strong>{(resumeResult.skills || []).length}</strong></span>
-              <span className="cc-query-meta-item">Links: <strong>{(resumeResult.links || []).length}</strong></span>
-            </div>
-            {resumeResult.skills && resumeResult.skills.length > 0 && (
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 'var(--cc-sp-3)' }}>
-                {resumeResult.skills.slice(0, 14).map(skill => (
-                  <span key={skill} className="cc-source-pill">{skill}</span>
-                ))}
-              </div>
-            )}
-            {resumeResult.warnings && resumeResult.warnings.length > 0 && (
-              <div style={{ marginTop: 'var(--cc-sp-2)', fontSize: 12, color: 'var(--cc-text-muted)' }}>
-                {resumeResult.warnings.join(' ')}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Step 2 — Connect Google */}
-      <div className="cc-card" style={{ marginBottom: 'var(--cc-sp-4)' }}>
-        <div className="cc-card-title" style={{ color: accent }}>2 · Connect Google</div>
+        <div className="cc-card-title" style={{ color: accent }}>1 · Connect Google</div>
         <p style={{ marginTop: 'var(--cc-sp-2)', lineHeight: 1.6 }}>
           Grants read-only Gmail access (to find rejection emails) and Sheets access
           (to keep your tracker in sync). You can revoke it any time in your Google
@@ -190,9 +115,9 @@ function SourcesTab({ tweaks }) {
         </div>
       </div>
 
-      {/* Step 3 — Import */}
+      {/* Step 2 — Import */}
       <div className="cc-card" style={{ marginBottom: 'var(--cc-sp-4)' }}>
-        <div className="cc-card-title" style={{ color: accent }}>3 · Pull rejections</div>
+        <div className="cc-card-title" style={{ color: accent }}>2 · Pull rejections</div>
         <p style={{ marginTop: 'var(--cc-sp-2)', lineHeight: 1.6 }}>
           Scans your inbox for rejection emails, extracts the company and role, and
           adds them to your tracker. Existing rows are kept — your manual edits win.
