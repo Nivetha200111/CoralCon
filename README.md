@@ -108,21 +108,6 @@ web dashboard, so it works from any browser, not just the terminal.
 
 Every insight includes the query ID, source tables, row count, and supporting numbers. No hallucinated data.
 
-## Quick Start: Judge Demo (Sample Mode)
-
-Deterministic sample mode for reproducible judging. No API keys, no Coral installation, no network access required.
-
-```bash
-pip install -r requirements.txt
-python -m coralcon.cli judge-demo --sample
-```
-
-This runs the full four-agent pipeline against seeded sample data and produces:
-
-- `runs/latest/proof.json` — every Coral query logged with sources, rows, and timing
-- `runs/latest/insights.json` — evidence-backed insights with supporting numbers
-- `runs/latest/report.md` — human-readable analysis report
-- `submission/coralcon_evidence_pack.md` — complete judge evidence pack
 
 ### View the Proof Report
 
